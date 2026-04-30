@@ -16,11 +16,15 @@ tagger = MeCab.Tagger(
 
 # --- フィルタ ---
 def is_clean_noun(word):
-    # 記号除外
     if re.search(r'[\[\]()/]', word):
         return False
 
-    # 長さ制限
+    if re.search(r'\d', word):
+        return False
+    
+    if re.search(r'[A-Za-z]', word):
+        return False
+    
     if len(word) <= 1:
         return False
 
@@ -29,27 +33,23 @@ def is_clean_noun(word):
     while node:
         features = node.feature.split(",")
 
-        # 名詞のみ
         if features[0] == "名詞":
-            subtype = features[1]
-
-            # 一般名詞 or 固有名詞のみ許可
-            if subtype in ["一般", "固有名詞"]:
+            if "普通名詞" in features:
                 return True
 
         node = node.next
 
     return False
 
-
 # --- 事前にフィルタ済み語彙を作る（超重要） ---
 print("filtering vocabulary...")
 filtered_words = [w for w in wv.index_to_key if is_clean_noun(w)]
 print(f"filtered vocab size: {len(filtered_words)}")
 
-
 # --- ランダム抽出 ---
 def get_random_words(n=5):
+    if len(filtered_words) < n:
+        return filtered_words
     return random.sample(filtered_words, n)
 
 
