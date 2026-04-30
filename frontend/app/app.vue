@@ -1,77 +1,110 @@
 <script setup>
-useHead({
-  meta: [
-    { name: 'viewport', content: 'width=device-width, initial-scale=1' }
-  ],
-  link: [
-    { rel: 'icon', href: '/favicon.ico' }
-  ],
-  htmlAttrs: {
-    lang: 'en'
+import { ref, onUnmounted } from 'vue'
+
+const word = ref("ボタンを押してね")
+const nextWord = ref(null)
+let prev = null
+const isPlaying = ref(false)
+const progress = ref(0)
+const isResetting = ref(false) // ★追加
+const timelimit = 5000
+let mainLoop = null
+let startTime = 0
+let controller = null
+
+const fetchWord = async () => {
+  if (controller) controller.abort()
+  controller = new AbortController()
+
+  try {
+    const res = await $fetch("http://127.0.0.1:8000/word", { 
+      query: { prev },
+      signal: controller.signal 
+    })
+    prev = res.word
+    word.value = res.word
+  } catch (e) {
+    if (e.name === 'AbortError') return
+    word.value = "エラー"
+  } finally {
+    controller = null
   }
-})
+}
 
-const title = 'Nuxt Starter Template'
-const description = 'A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours.'
+const start = () => {
+  if (isPlaying.value) return
+  isPlaying.value = true
+  fetchWord()
+  startTime = Date.now()
 
-useSeoMeta({
-  title,
-  description,
-  ogTitle: title,
-  ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterCard: 'summary_large_image'
-})
+  mainLoop = setInterval(() => {
+    const elapsed = Date.now() - startTime
+    progress.value = (elapsed / timelimit) * 100
+
+    if (elapsed >= timelimit) {
+      fetchWord()
+      startTime = Date.now()
+
+      // リセット時: transition を一瞬切ってから戻す
+      isResetting.value = true
+      progress.value = 0
+      requestAnimationFrame(() => {
+        isResetting.value = false
+      })
+    }
+  }, 16)
+}
+
+const stop = () => {
+  isPlaying.value = false
+  if (mainLoop) {
+    clearInterval(mainLoop)
+    mainLoop = null
+  }
+  if (controller) {
+    controller.abort()
+    controller = null
+  }
+  progress.value = 0
+}
+
+const toggle = () => {
+  isPlaying.value ? stop() : start()
+}
+
+onUnmounted(() => stop())
 </script>
 
 <template>
-  <UApp>
-    <UHeader>
-      <template #left>
-        <NuxtLink to="/">
-          <AppLogo class="w-auto h-6 shrink-0" />
-        </NuxtLink>
+  <div class="p-4 max-w-md mx-auto">
+    <div class="flex justify-center">
+      <button
+        @click="toggle"
+        class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl transition-transform active:scale-90"
+        :class="isPlaying ? 'bg-red-500' : 'bg-blue-500'"
+      >
+        {{ isPlaying ? '■' : '▶' }}
+      </button>
+    </div>
 
-        <TemplateMenu />
-      </template>
+    <UCard class="mt-4 text-center">
+      <!-- 単語表示 -->
+      <div class="text-4xl font-bold h-32 flex items-center justify-center">
+        {{ word }}
+      </div>
 
-      <template #right>
-        <UColorModeButton />
-
-        <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
-      </template>
-    </UHeader>
-
-    <UMain>
-      <NuxtPage />
-    </UMain>
-
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
-
-    <UFooter>
-      <template #left>
-        <p class="text-sm text-muted">
-          Built with Nuxt UI • © {{ new Date().getFullYear() }}
-        </p>
-      </template>
-
-      <template #right>
-        <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
-      </template>
-    </UFooter>
-  </UApp>
+      <!-- 進捗バー -->
+      <div class="mt-4 px-2">
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div
+            class="h-full bg-primary rounded-full"
+            :style="{
+              width: progress + '%',
+              transition: isResetting ? 'none' : 'width 0.1s linear'
+            }"
+          />
+        </div>
+      </div>
+    </UCard>
+  </div>
 </template>
