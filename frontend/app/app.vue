@@ -2,11 +2,10 @@
 import { ref, onUnmounted } from 'vue'
 
 const word = ref("ボタンを押してね")
-const nextWord = ref(null)
 let prev = null
 const isPlaying = ref(false)
 const progress = ref(0)
-const isResetting = ref(false) // ★追加
+const isResetting = ref(false)
 const timelimit = 5000
 let mainLoop = null
 let startTime = 0
