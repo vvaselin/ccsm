@@ -1,23 +1,20 @@
-from fastapi import FastAPI
-from src.model import load_model, create_tagger
-from src.filter import build_filtered_words
-from src.sampler import get_random_words, get_far_words
+import requests
 
-app = FastAPI()
-def main():
-    print("loading model...")
-    wv = load_model()
+def get_speakers():
+    url = "http://localhost:50021/speakers"  # VOICEVOX APIのエンドポイント
+    response = requests.get(url)
 
-    print("initializing MeCab...")
-    tagger = create_tagger()
-
-    print("filtering vocabulary...")
-    filtered_words = build_filtered_words(wv, tagger)
-    print(f"filtered vocab size: {len(filtered_words)}")
-
-    print(get_random_words(filtered_words))
-    print(get_far_words(wv, filtered_words))
-
+    if response.status_code == 200:
+        speakers = response.json()
+        for speaker in speakers:
+            name = speaker['name']
+            style_names = [style['name'] for style in speaker['styles']]
+            style_ids = [style['id'] for style in speaker['styles']]
+            for style_id, style_name in zip(style_ids, style_names):
+                print(f"Speaker: {name}, {style_name} id: {style_id}")
+            
+    else:
+        print(f"Error: {response.status_code}")
 
 if __name__ == "__main__":
-    main()
+    get_speakers()
