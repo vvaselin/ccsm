@@ -11,6 +11,7 @@ dependencies = [
     "mecab>=0.996.13",
     "mypy>=1.20.2",
     "pydantic>=2.13.3",
+    "redis>=7.4.0",
     "requests>=2.33.1",
     "unidic-lite>=1.0.8",
     "uvicorn>=0.46.0",
