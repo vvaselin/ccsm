@@ -1,11 +1,12 @@
-from gensim.models import KeyedVectors
+from gensim.models.fasttext import load_facebook_model
 import MeCab
 import unidic_lite
 import os
 
 
-def load_model(path="model/small.kv"):
-    return KeyedVectors.load(path)
+def load_model(path="model/cc.ja.300.bin"):
+    model = load_facebook_model(path)
+    return model.wv
 
 
 def create_tagger():
