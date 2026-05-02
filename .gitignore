@@ -13,3 +13,6 @@ wheels/
 コマンド.txt
 
 model/
+
+audio_cache/
+cache/
