@@ -1,12 +1,12 @@
 <!-- app.vue -->
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import { useSession }     from '~/composables/useSession'
-import { useAudioPlayer } from '~/composables/useAudioPlayer'
-import { useSleepTimer }  from '~/composables/useSleepTimer'
-import { useWordLoop }    from '~/composables/useWordLoop'
-import { useSpeaker }     from '~/composables/useSpeaker'
-import { usePinkNoise }   from '~/composables/usePinkNoise'
+import { useSession }      from '~/composables/useSession'
+import { useAudioPlayer }  from '~/composables/useAudioPlayer'
+import { useSleepTimer }   from '~/composables/useSleepTimer'
+import { useWordLoop }     from '~/composables/useWordLoop'
+import { useSpeaker }      from '~/composables/useSpeaker'
+import { useAmbientSound } from '~/composables/useAmbientSound'
 
 const { sessionId } = useSession()
 
@@ -29,14 +29,13 @@ const {
 const { selectedSpeaker, selectSpeaker } = useSpeaker()
 
 const {
-  isEnabled:      pinkNoiseOn,
-  volume:         pinkNoiseVolume,
-  toggle:         _togglePinkNoise,
-  startIfEnabled: startPinkNoise,
-  stopAudio:      stopPinkNoise,
-  setVolume:      setPinkNoiseVolume,
-  dispose:        disposePinkNoise,
-} = usePinkNoise()
+  states:         ambientStates,
+  toggle:         toggleAmbient,
+  setVolume:      setAmbientVolume,
+  startIfEnabled: startAmbient,
+  stopAudio:      stopAmbient,
+  dispose:        disposeAmbient,
+} = useAmbientSound()
 
 const {
   word,
@@ -45,40 +44,30 @@ const {
   phaseLabel,
   stop:   _stop,
   start:  _start,
-  toggle: _toggle,
 } = useWordLoop(
   sessionId,
   computed(() => selectedSpeaker.value?.id),
   { playNext, startProgress, resetProgress, stopAudio: stopPlayerAudio }
 )
 
-// ピンクノイズと連動したstart/stop/toggle
 function stop() {
   _stop()
-  stopPinkNoise()
+  stopAmbient()
 }
 
 function start() {
   _start()
-  startPinkNoise()
+  startAmbient()
 }
 
 const toggle = () => isPlaying.value ? stop() : start()
-
-// 設定ボタン用：isEnabledを切り替え＋再生中ならON時に音も開始
-function togglePinkNoise() {
-  _togglePinkNoise()
-  if (isPlaying.value && pinkNoiseOn.value) {
-    startPinkNoise()
-  }
-}
 
 const showSettingsMenu = ref(false)
 
 onUnmounted(() => {
   stop()
   disposeTimer()
-  disposePinkNoise()
+  disposeAmbient()
 })
 </script>
 
@@ -128,12 +117,11 @@ onUnmounted(() => {
       <SettingsSheet
         :show="showSettingsMenu"
         :selected-speaker="selectedSpeaker"
-        :pink-noise-on="pinkNoiseOn"
-        :pink-noise-volume="pinkNoiseVolume"
+        :ambient-states="ambientStates"
         @close="showSettingsMenu = false"
         @select-speaker="selectSpeaker"
-        @toggle-pink-noise="togglePinkNoise"
-        @set-pink-noise-volume="setPinkNoiseVolume"
+        @toggle-ambient="toggleAmbient"
+        @set-ambient-volume="setAmbientVolume"
       />
 
     </div>
