@@ -91,6 +91,12 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <Head>
+    <Meta name="apple-mobile-web-app-capable" content="yes" />
+    <Meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <Meta name="apple-mobile-web-app-title" content="CSSM" />
+    <Link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </Head>
   <div class="min-h-screen flex items-center justify-center" style="background:#0d0f12">
     <div
       class="relative flex flex-col justify-between overflow-hidden w-full"
