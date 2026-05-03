@@ -1,14 +1,12 @@
 <!-- app.vue -->
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import { useSession }      from '~/composables/useSession'
 import { useAudioPlayer }  from '~/composables/useAudioPlayer'
 import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
 import { useSpeaker }      from '~/composables/useSpeaker'
 import { useAmbientSound } from '~/composables/useAmbientSound'
 
-const { sessionId } = useSession()
 
 const {
   progress,
@@ -47,31 +45,41 @@ const {
   phaseLabel,
   stop:              _stop,
   start:             _start,
+  toggle:            _toggle,
   playPhraseByType,
 } = useWordLoop(
-  sessionId,
   computed(() => selectedSpeaker.value?.id),
   { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio }
 )
 
-function stop() {
-  _stop(false)
+async function stop() {
+  await _stop()
   stopAmbient()
 }
 
 // タイマー満了時：ループ停止 → セリフ再生 → 環境音フェードアウト
 async function stopWithPhrase() {
-  _stop(false, true)
+  await _stop(true)
   await playPhraseByType('stop')
   await fadeOutAudio(0, 3000)
 }
 
-function start() {
-  _start()
+async function start() {
+  await _start()
   startAmbient()
 }
 
-const toggle = () => isPlaying.value ? stop() : start()
+const toggle = async () => {
+  if (isPlaying.value) {
+    // 停止：_toggleに任せつつ環境音も止める
+    await _stop()
+    stopAmbient()
+  } else {
+    // 開始：環境音を先に起動してから_toggleに任せる
+    startAmbient()
+    _toggle()
+  }
+}
 
 const showSettingsMenu = ref(false)
 
@@ -83,10 +91,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center" style="background:#25292e">
+  <div class="min-h-screen flex items-center justify-center" style="background:#0d0f12">
     <div
       class="relative flex flex-col justify-between overflow-hidden w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; background:#0f1a29"
+      style="max-width:390px; height:100dvh; max-height:844px; background:#0d0f12"
     >
 
       <!-- 上部：フェーズラベル＋単語＋セリフ -->
