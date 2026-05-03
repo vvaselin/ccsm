@@ -63,6 +63,11 @@ export function useAudioPlayer() {
     return duration
   }
 
+  // セリフ用：パンを変えずに中央で再生
+  async function playPhrase(audioUrl) {
+    return await playAudio(audioUrl, 0)
+  }
+
   function stopAudio() {
     if (currentSource) {
       currentSource.onended = null
@@ -76,6 +81,7 @@ export function useAudioPlayer() {
   return {
     progress,
     playNext,
+    playPhrase,
     stopAudio,
     startProgress,
     resetProgress,

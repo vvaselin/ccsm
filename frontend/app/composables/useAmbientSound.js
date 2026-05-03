@@ -7,10 +7,10 @@ import { ref, reactive } from 'vue'
 const MAX_VOLUME = 0.5
 
 export const AMBIENT_SOUNDS = [
-  { id: 'pink',     label: 'ピンクノイズ', icon: '〜' },
-  { id: 'brown',    label: 'ブラウンノイズ', icon: '▬' },
-  { id: 'rain',     label: '雨音',          icon: '✦' },
-  { id: 'binaural', label: 'バイノーラル',   icon: '◎' },
+  { id: 'pink',     label: 'ピンクノイズ',  icon: '~'  },
+  { id: 'brown',    label: 'ブラウンノイズ', icon: '='  },
+  { id: 'rain',     label: '雨音',          icon: '*'  },
+  { id: 'binaural', label: 'バイノーラル',   icon: 'o'  },
 ]
 
 export function useAmbientSound() {
@@ -135,7 +135,7 @@ export function useAmbientSound() {
 
       // GainNodeでエンベロープをかけて音量のばらつきを出す
       const g = ctx.createGain()
-      g.gain.value = 0.05 + Math.random() * 0.18  // ゲイン下げる
+      g.gain.value = 0.12 + Math.random() * 0.18  // ゲイン下げる
 
       src.connect(lpf)
       lpf.connect(g)
@@ -154,7 +154,7 @@ export function useAmbientSound() {
     rushBpf.Q.value         = 0.6    // 広めに通す
 
     const rushGain = ctx.createGain()
-    rushGain.gain.value = 0.3
+    rushGain.gain.value = 0.22
 
     rushSrc.connect(rushBpf)
     rushBpf.connect(rushGain)
@@ -280,6 +280,31 @@ export function useAmbientSound() {
     AMBIENT_SOUNDS.forEach(s => _stopOne(s.id))
   }
 
+  // タイマー終了時：fadeDurationMs かけてフェードアウトして停止
+  async function fadeOutAudio(holdMs = 0, fadeDurationMs = 4000) {
+    sessionActive = false
+
+    if (holdMs > 0) {
+      await new Promise(r => setTimeout(r, holdMs))
+    }
+
+    // 再生中のノードにフェードをかける
+    const ctx = audioCtx  // 新しいcontextを作らず既存のものだけ使う
+    if (ctx) {
+      AMBIENT_SOUNDS.forEach(s => {
+        if (!nodes[s.id]) return
+        const g   = nodes[s.id].gainNode
+        const now = ctx.currentTime
+        g.gain.cancelScheduledValues(now)
+        g.gain.setValueAtTime(g.gain.value, now)
+        g.gain.linearRampToValueAtTime(0, now + fadeDurationMs / 1000)
+      })
+    }
+
+    await new Promise(r => setTimeout(r, fadeDurationMs + 200))
+    AMBIENT_SOUNDS.forEach(s => _stopOne(s.id))
+  }
+
   function dispose() {
     stopAudio()
     audioCtx?.close()
@@ -292,6 +317,7 @@ export function useAmbientSound() {
     setVolume,
     startIfEnabled,
     stopAudio,
+    fadeOutAudio,
     dispose,
   }
 }

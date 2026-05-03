@@ -13,8 +13,9 @@ const PHRASE_PAUSE_MS = 5000
 const RELAX_INTERVAL = 10
 const RELAX_JITTER   = 3
 
-export function useWordLoop(sessionId, speakerId, { playNext, startProgress, resetProgress, stopAudio }) {
+export function useWordLoop(sessionId, speakerId, { playNext, playPhrase: playPhraseAudio, startProgress, resetProgress, stopAudio }) {
   const word      = ref('タップして開始')
+  const phrase    = ref('')   // 現在表示中のセリフ
   const isPlaying = ref(false)
   const phase     = ref('idle')
 
@@ -73,13 +74,16 @@ export function useWordLoop(sessionId, speakerId, { playNext, startProgress, res
   async function playPhrase(type) {
     try {
       const data = await fetchPhrase(type)
+      phrase.value = data.phrase
       phase.value = 'phrase'
       resetProgress()
-      await playNext(data.audio_url)
-      // セリフ後に短い間
+      await playPhraseAudio(data.audio_url)
+      // セリフ後に間
       await new Promise(resolve => setTimeout(resolve, PHRASE_PAUSE_MS))
     } catch {
       // セリフ再生失敗は無視してループ継続
+    } finally {
+      phrase.value = ''
     }
   }
 
@@ -168,11 +172,11 @@ export function useWordLoop(sessionId, speakerId, { playNext, startProgress, res
     isPlaying.value = false
   }
 
-  async function stop(playStopPhrase = false) {
+  async function stop(playStopPhrase = false, stopPlayerAudio = true) {
     stopped         = true
     isPlaying.value = false
     prev            = null
-    stopAudio()
+    if (stopPlayerAudio) stopAudio()
     phase.value = 'idle'
 
     if (playStopPhrase) {
@@ -180,15 +184,22 @@ export function useWordLoop(sessionId, speakerId, { playNext, startProgress, res
     }
   }
 
+  // 外部から呼べるセリフ再生（タイマー停止時などに使う）
+  async function playPhraseByType(type) {
+    await playPhrase(type)
+  }
+
   const toggle = () => isPlaying.value ? stop() : start()
 
   return {
     word,
+    phrase,
     isPlaying,
     phase,
     phaseLabel,
     start,
     stop,
     toggle,
+    playPhraseByType,
   }
 }

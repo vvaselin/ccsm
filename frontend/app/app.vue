@@ -13,6 +13,7 @@ const { sessionId } = useSession()
 const {
   progress,
   playNext,
+  playPhrase,
   stopAudio: stopPlayerAudio,
   startProgress,
   resetProgress,
@@ -34,20 +35,23 @@ const {
   setVolume:      setAmbientVolume,
   startIfEnabled: startAmbient,
   stopAudio:      stopAmbient,
+  fadeOutAudio,
   dispose:        disposeAmbient,
 } = useAmbientSound()
 
 const {
   word,
+  phrase,
   isPlaying,
   phase,
   phaseLabel,
-  stop:   _stop,
-  start:  _start,
+  stop:              _stop,
+  start:             _start,
+  playPhraseByType,
 } = useWordLoop(
   sessionId,
   computed(() => selectedSpeaker.value?.id),
-  { playNext, startProgress, resetProgress, stopAudio: stopPlayerAudio }
+  { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio }
 )
 
 function stop() {
@@ -55,10 +59,11 @@ function stop() {
   stopAmbient()
 }
 
-// タイマー満了時：環境音を止めてからセリフを再生
+// タイマー満了時：ループ停止 → セリフ再生 → 環境音フェードアウト
 async function stopWithPhrase() {
-  stopAmbient()
-  await _stop(true)
+  _stop(false, true)
+  await playPhraseByType('stop')
+  await fadeOutAudio(0, 3000)
 }
 
 function start() {
@@ -78,23 +83,44 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center" style="background:#0d0f12">
+  <div class="min-h-screen flex items-center justify-center" style="background:#25292e">
     <div
       class="relative flex flex-col justify-between overflow-hidden w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; background:#0d0f12"
+      style="max-width:390px; height:100dvh; max-height:844px; background:#0f1a29"
     >
 
-      <!-- 上部：フェーズラベル＋単語 -->
+      <!-- 上部：フェーズラベル＋単語＋セリフ -->
       <div class="text-center px-8" style="padding-top:64px">
         <p class="text-xs tracking-widest uppercase mb-4" style="color:#9aa0b0; height:16px">
           {{ phaseLabel }}&nbsp;
         </p>
-        <p
-          class="leading-none"
-          style="font-size:56px; color:rgba(232,234,240,0.45); letter-spacing:-0.01em; font-family:serif"
-        >
-          {{ word }}
-        </p>
+
+        <!-- 固定高さコンテナ：単語とセリフを同じ場所に表示 -->
+        <div style="position:relative; height:80px; display:flex; align-items:center; justify-content:center">
+
+          <!-- 単語（セリフ再生中は非表示） -->
+          <Transition name="fade-word">
+            <p
+              v-if="phase !== 'phrase'"
+              :key="word"
+              style="position:absolute; font-size:56px; color:rgba(232,234,240,0.45); letter-spacing:-0.01em; font-family:serif; line-height:1; margin:0"
+            >
+              {{ word }}
+            </p>
+          </Transition>
+
+          <!-- セリフ（再生中のみ表示） -->
+          <Transition name="fade-word">
+            <p
+              v-if="phase === 'phrase' && phrase"
+              :key="phrase"
+              style="position:absolute; font-size:22px; color:rgba(180,200,220,0.6); letter-spacing:0.05em; font-family:serif; line-height:1.4; margin:0"
+            >
+              {{ phrase }}
+            </p>
+          </Transition>
+
+        </div>
       </div>
 
       <!-- 下部：進捗バー＋コントロール -->
@@ -133,3 +159,26 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-word-enter-active {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.fade-word-leave-active {
+  transition: opacity 0.4s ease;
+}
+.fade-word-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.fade-word-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fade-word-leave-from {
+  opacity: 1;
+}
+.fade-word-leave-to {
+  opacity: 0;
+}
+</style>
