@@ -24,7 +24,7 @@ const {
   showTimerMenu,
   setTimer,
   dispose: disposeTimer,
-} = useSleepTimer(() => stop())
+} = useSleepTimer(() => stopWithPhrase())
 
 const { selectedSpeaker, selectSpeaker } = useSpeaker()
 
@@ -51,8 +51,14 @@ const {
 )
 
 function stop() {
-  _stop()
+  _stop(false)
   stopAmbient()
+}
+
+// タイマー満了時：環境音を止めてからセリフを再生
+async function stopWithPhrase() {
+  stopAmbient()
+  await _stop(true)
 }
 
 function start() {

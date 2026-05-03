@@ -25,7 +25,7 @@ defineEmits(['toggle', 'toggleTimer', 'toggleSettings'])
           border:     showSettingsMenu ? '1px solid rgba(126,184,201,0.3)' : '1px solid rgba(255,255,255,0.08)',
         }"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"
           :stroke="showSettingsMenu ? '#7eb8c9' : '#6b7280'">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
@@ -61,7 +61,7 @@ defineEmits(['toggle', 'toggleTimer', 'toggleSettings'])
           border:     timerOption ? '1px solid rgba(126,184,201,0.3)' : '1px solid rgba(255,255,255,0.08)',
         }"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"
           :stroke="timerOption ? '#7eb8c9' : '#6b7280'">
           <circle cx="12" cy="13" r="8"/>
           <path d="M12 9v4l2 2"/>

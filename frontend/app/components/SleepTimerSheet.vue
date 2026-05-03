@@ -20,7 +20,7 @@ defineEmits(['close', 'select', 'clear'])
     >
       <div
         class="w-full"
-        style="background:#161920; border-top:1px solid rgba(255,255,255,0.07); border-radius:24px 24px 0 0; padding:24px 24px 48px"
+        style="background:#1a1f2a; border-top:1px solid rgba(126,184,201,0.12); border-radius:24px 24px 0 0; padding:24px 24px 48px"
       >
         <!-- ハンドル -->
         <div class="rounded-full mx-auto" style="width:36px; height:3px; background:rgba(255,255,255,0.12); margin-bottom:24px" />
