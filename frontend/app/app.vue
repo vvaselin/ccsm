@@ -57,7 +57,6 @@ async function stop() {
   stopAmbient()
 }
 
-// タイマー満了時：ループ停止 → セリフ再生 → 環境音フェードアウト
 async function stopWithPhrase() {
   await _stop(true)
   await playPhraseByType('stop')
@@ -71,17 +70,16 @@ async function start() {
 
 const toggle = async () => {
   if (isPlaying.value) {
-    // 停止：_toggleに任せつつ環境音も止める
     await _stop()
     stopAmbient()
   } else {
-    // 開始：環境音を先に起動してから_toggleに任せる
     startAmbient()
     _toggle()
   }
 }
 
 const showSettingsMenu = ref(false)
+const showInfoSheet = ref(null)
 
 onUnmounted(() => {
   stop()
@@ -91,28 +89,47 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- こんなとこ見てないで、はよ寝ろ -->
   <Head>
     <Meta name="apple-mobile-web-app-capable" content="yes" />
     <Meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <Meta name="apple-mobile-web-app-title" content="CSSM" />
     <Link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </Head>
-  <div class="min-h-screen flex items-center justify-center" style="background:#0d0f12">
+  <div class="min-h-screen flex items-center justify-center bg-animated">
     <div
-      class="relative flex flex-col justify-between overflow-hidden w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; background:#0d0f12"
+      class="relative flex flex-col justify-between overflow-hidden w-full bg-animated"
+      style="max-width:390px; height:100dvh; max-height:844px;"
     >
 
-      <!-- 上部：フェーズラベル＋単語＋セリフ -->
-      <div class="text-center px-8" style="padding-top:64px">
+      <div
+        class="flex items-center justify-between px-6"
+        style="padding-top:20px; padding-bottom:4px; flex-shrink:0"
+      >
+        <p style="font-size:13px; color:rgba(232,234,240,0.35); letter-spacing:0.08em">SOMNIOVOX<span style="font-size:10px; opacity:0.6">（仮）</span> v0.8</p>
+        <div class="flex items-center" style="gap:16px">
+          <button
+            @click="showInfoSheet = 'about'"
+            style="font-size:12px; color:rgba(232,234,240,0.3); letter-spacing:0.05em; background:none; border:none; cursor:pointer; padding:4px"
+          >
+            使い方
+          </button>
+          <button
+            @click="showInfoSheet = 'credit'"
+            style="font-size:12px; color:rgba(232,234,240,0.3); letter-spacing:0.05em; background:none; border:none; cursor:pointer; padding:4px"
+          >
+            クレジット
+          </button>
+        </div>
+      </div>
+
+      <div class="text-center px-8" style="padding-top:32px">
         <p class="text-xs tracking-widest uppercase mb-4" style="color:#9aa0b0; height:16px">
           {{ phaseLabel }}&nbsp;
         </p>
 
-        <!-- 固定高さコンテナ：単語とセリフを同じ場所に表示 -->
         <div style="position:relative; height:80px; display:flex; align-items:center; justify-content:center">
 
-          <!-- 単語（セリフ再生中は非表示） -->
           <Transition name="fade-word">
             <p
               v-if="phase !== 'phrase'"
@@ -123,7 +140,6 @@ onUnmounted(() => {
             </p>
           </Transition>
 
-          <!-- セリフ（再生中のみ表示） -->
           <Transition name="fade-word">
             <p
               v-if="phase === 'phrase' && phrase"
@@ -137,7 +153,6 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 下部：進捗バー＋コントロール -->
       <div class="px-8 flex flex-col" style="padding-bottom:64px; gap:28px">
         <ProgressBar :progress="progress" :phase="phase" />
         <PlayerControls
@@ -152,7 +167,6 @@ onUnmounted(() => {
         />
       </div>
 
-      <!-- オーバーレイ -->
       <SleepTimerSheet
         :show="showTimerMenu"
         :timer-option="timerOption"
@@ -170,11 +184,34 @@ onUnmounted(() => {
         @set-ambient-volume="setAmbientVolume"
       />
 
+      <InfoSheet
+        :show="showInfoSheet"
+        @close="showInfoSheet = null"
+      />
+
     </div>
   </div>
 </template>
 
 <style scoped>
+.bg-animated {
+  background:
+    radial-gradient(ellipse 120% 60% at 50% 0%,   #2d1b4e 0%, transparent 70%),
+    radial-gradient(ellipse 120% 60% at 50% 50%,  #0f2a4a 0%, transparent 70%),
+    radial-gradient(ellipse 120% 60% at 50% 100%, #0d2a1f 0%, transparent 70%),
+    #0d0f18;
+  background-attachment: fixed;
+  animation: wave 6s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%   { background-position: 50% 0%,   50% 50%,  50% 100%, 0 0; }
+  25%  { background-position: 55% 5%,   48% 52%,  52% 95%,  0 0; }
+  50%  { background-position: 50% 8%,   52% 48%,  48% 100%, 0 0; }
+  75%  { background-position: 45% 3%,   50% 54%,  50% 97%,  0 0; }
+  100% { background-position: 50% 0%,   50% 50%,  50% 100%, 0 0; }
+}
+
 .fade-word-enter-active {
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
