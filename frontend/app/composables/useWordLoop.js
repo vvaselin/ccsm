@@ -55,7 +55,7 @@ function phraseAudioUrl(phrase, speakerId) {
 export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, startProgress, resetProgress, stopAudio }) {
   const { pickNext } = useWordPicker()
 
-  const word      = ref('タップして開始')
+  const word      = ref('再生ボタンで開始')
   const phrase    = ref('')
   const isPlaying = ref(false)
   const phase     = ref('idle')

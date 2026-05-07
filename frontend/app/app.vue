@@ -91,6 +91,8 @@ onUnmounted(() => {
 <template>
   <!-- こんなとこ見てないで、はよ寝ろ -->
   <Head>
+    <title>SOMNIOVOX</title>
+    <Meta name="description" content="ランダムな単語を聞いて自然に眠りにつく。認知シャッフル睡眠法のWebアプリ。" />
     <Meta name="apple-mobile-web-app-capable" content="yes" />
     <Meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <Meta name="apple-mobile-web-app-title" content="CSSM" />
