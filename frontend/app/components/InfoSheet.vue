@@ -1,9 +1,45 @@
 <!-- components/InfoSheet.vue -->
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   show: { type: String, default: null }, // 'about' | 'credit' | null
 })
-defineEmits(['close'])
+
+const emit = defineEmits(['close'])
+
+// スワイプ機能
+const sheetRef = ref(null)
+const isDragging = ref(false)
+const startY = ref(0)
+const currentY = ref(0)
+
+function onTouchStart(e) {
+  isDragging.value = true
+  startY.value = e.touches[0].clientY
+  currentY.value = 0
+}
+
+function onTouchMove(e) {
+  if (!isDragging.value) return
+  const deltaY = e.touches[0].clientY - startY.value
+  if (deltaY > 0) { // 下方向のみ
+    currentY.value = deltaY
+    e.preventDefault()
+  }
+}
+
+function onTouchEnd() {
+  if (!isDragging.value) return
+  isDragging.value = false
+  
+  // 100px以上スワイプしたら閉じる
+  if (currentY.value > 100) {
+    emit('close')
+  }
+  
+  currentY.value = 0
+}
 </script>
 
 <template>
@@ -15,14 +51,25 @@ defineEmits(['close'])
       @click.self="$emit('close')"
     >
       <div
+        ref="sheetRef"
         class="w-full flex flex-col"
-        style="background:#1a1f2a; border-top:1px solid rgba(126,184,201,0.12); border-radius:24px 24px 0 0; max-height:80dvh"
+        :style="{
+          background: '#1a1f2a',
+          borderTop: '1px solid rgba(126,184,201,0.12)',
+          borderRadius: '24px 24px 0 0',
+          maxHeight: '80dvh',
+          transform: `translateY(${currentY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+        }"
       >
-        <!-- ハンドル -->
+        <!-- ハンドル（ドラッグ可能） -->
         <div style="padding:16px 24px 0; flex-shrink:0">
           <div
             class="rounded-full mx-auto"
-            style="width:36px; height:3px; background:rgba(255,255,255,0.15); margin-bottom:16px"
+            style="width:36px; height:3px; background:rgba(255,255,255,0.15); margin-bottom:16px; cursor:grab; touch-action:none"
+            @touchstart="onTouchStart"
+            @touchmove="onTouchMove"
+            @touchend="onTouchEnd"
           />
         </div>
 

@@ -1,5 +1,6 @@
 <!-- components/SleepTimerSheet.vue -->
 <script setup>
+import { ref } from 'vue'
 import { TIMER_OPTIONS } from '~/composables/useSleepTimer'
 
 defineProps({
@@ -7,7 +8,40 @@ defineProps({
   timerOption: { type: Object,  default: null },
 })
 
-defineEmits(['close', 'select', 'clear'])
+const emit = defineEmits(['close', 'select', 'clear'])
+
+// スワイプ機能
+const sheetRef = ref(null)
+const isDragging = ref(false)
+const startY = ref(0)
+const currentY = ref(0)
+
+function onTouchStart(e) {
+  isDragging.value = true
+  startY.value = e.touches[0].clientY
+  currentY.value = 0
+}
+
+function onTouchMove(e) {
+  if (!isDragging.value) return
+  const deltaY = e.touches[0].clientY - startY.value
+  if (deltaY > 0) { // 下方向のみ
+    currentY.value = deltaY
+    e.preventDefault()
+  }
+}
+
+function onTouchEnd() {
+  if (!isDragging.value) return
+  isDragging.value = false
+  
+  // 100px以上スワイプしたら閉じる
+  if (currentY.value > 100) {
+    emit('close')
+  }
+  
+  currentY.value = 0
+}
 </script>
 
 <template>
@@ -19,11 +53,25 @@ defineEmits(['close', 'select', 'clear'])
       @click.self="$emit('close')"
     >
       <div
+        ref="sheetRef"
         class="w-full"
-        style="background:#1a1f2a; border-top:1px solid rgba(126,184,201,0.12); border-radius:24px 24px 0 0; padding:24px 24px 48px"
+        :style="{
+          background: '#1a1f2a',
+          borderTop: '1px solid rgba(126,184,201,0.12)',
+          borderRadius: '24px 24px 0 0',
+          padding: '24px 24px 48px',
+          transform: `translateY(${currentY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+        }"
       >
-        <!-- ハンドル -->
-        <div class="rounded-full mx-auto" style="width:36px; height:3px; background:rgba(255,255,255,0.12); margin-bottom:24px" />
+        <!-- ハンドル（ドラッグ可能） -->
+        <div
+          class="rounded-full mx-auto"
+          style="width:36px; height:3px; background:rgba(255,255,255,0.12); margin-bottom:24px; cursor:grab; touch-action:none"
+          @touchstart="onTouchStart"
+          @touchmove="onTouchMove"
+          @touchend="onTouchEnd"
+        />
 
         <p class="text-xs tracking-widest uppercase text-center" style="color:#5a6070; margin-bottom:20px">
           スリープタイマー

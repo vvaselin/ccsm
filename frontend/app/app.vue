@@ -1,6 +1,6 @@
 <!-- app.vue -->
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, onMounted } from 'vue'
 import { useAudioPlayer }  from '~/composables/useAudioPlayer'
 import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
@@ -81,10 +81,18 @@ const toggle = async () => {
 const showSettingsMenu = ref(false)
 const showInfoSheet = ref(null)
 
+// スクロール防止
+onMounted(() => {
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+})
+
 onUnmounted(() => {
   stop()
   disposeTimer()
   disposeAmbient()
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
 })
 </script>
 
@@ -96,12 +104,13 @@ onUnmounted(() => {
     <Meta name="apple-mobile-web-app-capable" content="yes" />
     <Meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <Meta name="apple-mobile-web-app-title" content="CSSM" />
+    <Meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <Link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </Head>
-  <div class="min-h-screen flex items-center justify-center bg-animated">
+  <div class="min-h-screen flex items-center justify-center bg-animated" style="overflow:hidden; position:fixed; width:100%; height:100%">
     <div
-      class="relative flex flex-col justify-between overflow-hidden w-full"
-      style="max-width:390px; height:100dvh; max-height:844px;"
+      class="relative flex flex-col justify-between w-full"
+      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden"
     >
       <!-- 背景キャラクター画像（全体表示） -->
       <Transition name="fade-character">
@@ -113,10 +122,16 @@ onUnmounted(() => {
           <img
             src="/TT.webp"
             alt="ナースロボ＿タイプＴ"
-            style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; object-position:center"
+            style="position:absolute; top:50px; left:0; width:100%; height:100%; object-fit:cover; object-position:center; pointer-events:none"
           />
-          <!-- グラデーションオーバーレイ（上下をぼかす） -->
-          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, rgba(13,15,24,0.85) 0%, rgba(13,15,24,0.3) 25%, rgba(13,15,24,0.3) 75%, rgba(13,15,24,0.85) 100%); pointer-events:none"></div>
+          <div style="position:absolute; 
+                      top:0; 
+                      left:0; 
+                      width:100%; 
+                      height:100%; 
+                      background:linear-gradient(to bottom, rgba(13,15,24,0.85) 0%, rgba(13,15,24,0.3) 25%, rgba(13,15,24,0.3) 75%, rgba(13,15,24,0.85) 100%); 
+                      pointer-events:none">
+          </div>
         </div>
       </Transition>
 
@@ -145,12 +160,12 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="text-center px-8" style="padding-top:12px; flex-shrink:0; position:relative; z-index:10">
+      <div class="text-center px-8" style="padding-top:12px; padding-bottom: 12px;flex-shrink:0; position:relative; z-index:10; background:rgba(0,0,0,0.1); backdrop-filter:blur(1px);">
         <p class="text-xs tracking-widest uppercase mb-3" style="color:#9aa0b0; height:14px">
           {{ phaseLabel }}&nbsp;
         </p>
 
-        <div style="position:relative; height:70px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px); border-radius:12px; padding:12px">
+        <div style="position:relative; height:70px; display:flex; align-items:center; justify-content:center; border-radius:12px; padding:12px">
 
           <Transition name="fade-word">
             <p
@@ -226,6 +241,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   z-index: 1;
+  overflow: hidden;
 }
 
 .bg-animated-layer {

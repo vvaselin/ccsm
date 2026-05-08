@@ -4,7 +4,8 @@
 import { ref, computed } from 'vue'
 import { useWordPicker } from '~/composables/useWordPicker'
 
-const PAUSE_MS        = 8000
+const PAUSE_MIN_MS    = 8000   // 最小待機時間: 8秒
+const PAUSE_MAX_MS    = 13000  // 最大待機時間: 13秒
 const PHRASE_PAUSE_MS = 5000
 const RELAX_INTERVAL  = 10
 const RELAX_JITTER    = 3
@@ -52,6 +53,11 @@ function phraseAudioUrl(phrase, speakerId) {
   return `${AUDIO_BASE}/phrases/speaker_${speakerId}/${encodeURIComponent(phrase)}.wav`
 }
 
+// ランダムな待機時間を生成（8秒～13秒）
+function getRandomPauseTime() {
+  return PAUSE_MIN_MS + Math.random() * (PAUSE_MAX_MS - PAUSE_MIN_MS)
+}
+
 export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, startProgress, resetProgress, stopAudio }) {
   const { pickNext } = useWordPicker()
 
@@ -68,41 +74,53 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
     return ''
   })
 
-  let stopped        = false
-  let prev           = null
+  let currentLoopId = 0  // 現在のループを識別するID
   let sessionStarted = false
-
-  let wordCount   = 0
+  let prev = null
+  let wordCount = 0
   let nextRelaxAt = _nextRelaxCount()
 
   function _nextRelaxCount() {
     return RELAX_INTERVAL + Math.floor(Math.random() * RELAX_JITTER * 2 + 1) - RELAX_JITTER
   }
 
-  async function playPhrase(type) {
+  async function playPhrase(type, loopId) {
     try {
       const phrases = await loadPhrases()
       const text    = pickPhrase(phrases, type, speakerId.value)
       if (!text) return
+
+      // ループが無効化されていないかチェック
+      if (loopId !== currentLoopId) return
 
       phrase.value = text
       phase.value  = 'phrase'
       resetProgress()
 
       await playPhraseAudio(phraseAudioUrl(text, speakerId.value))
+      
+      // 待機中にループが無効化されていないかチェック
+      if (loopId !== currentLoopId) return
+      
       await new Promise(resolve => setTimeout(resolve, PHRASE_PAUSE_MS))
     } catch {
       // セリフ再生失敗は無視してループ継続
     } finally {
-      phrase.value = ''
+      // ループが有効な場合のみクリア
+      if (loopId === currentLoopId) {
+        phrase.value = ''
+      }
     }
   }
 
-  async function loop() {
+  async function loop(loopId) {
+    // このループが最新でなければ即座に終了
+    if (loopId !== currentLoopId) return
+
     if (!sessionStarted) {
       sessionStarted = true
-      await playPhrase('start')
-      if (stopped) return
+      await playPhrase('start', loopId)
+      if (loopId !== currentLoopId) return
     }
 
     phase.value = 'loading'
@@ -110,21 +128,22 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
     try {
       nextWord = await pickNext(null)
     } catch {
+      if (loopId !== currentLoopId) return
       word.value      = 'エラー'
       isPlaying.value = false
       phase.value     = 'idle'
       return
     }
 
-    while (!stopped) {
+    while (loopId === currentLoopId) {
       if (wordCount > 0 && wordCount >= nextRelaxAt) {
-        await playPhrase('relax')
-        if (stopped) break
+        await playPhrase('relax', loopId)
+        if (loopId !== currentLoopId) break
         wordCount   = 0
         nextRelaxAt = _nextRelaxCount()
         phase.value = 'loading'
         try { nextWord = await pickNext(prev) } catch { break }
-        if (stopped) break
+        if (loopId !== currentLoopId) break
       }
 
       word.value  = nextWord
@@ -135,67 +154,76 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
       let speakDuration = 1.5
       try {
         speakDuration = await playNext(wordAudioUrl(nextWord, speakerId.value))
+        if (loopId !== currentLoopId) break
         startProgress(speakDuration * 1000)
       } catch {
+        if (loopId !== currentLoopId) break
         startProgress(speakDuration * 1000)
       }
 
-      if (stopped) break
+      if (loopId !== currentLoopId) break
+      
+      // ランダムな待機時間を取得（8秒～13秒）
+      const pauseTime = getRandomPauseTime()
+      
       phase.value = 'pause'
       resetProgress()
-      startProgress(PAUSE_MS)
-      await new Promise(resolve => setTimeout(resolve, PAUSE_MS))
+      startProgress(pauseTime)
+      await new Promise(resolve => setTimeout(resolve, pauseTime))
 
-      if (stopped) break
+      if (loopId !== currentLoopId) break
       phase.value = 'loading'
       resetProgress()
       try { nextWord = await pickNext(prev) } catch { break }
-      if (stopped) break
+      if (loopId !== currentLoopId) break
     }
 
-    resetProgress()
-    phase.value = 'idle'
+    // このループが最新の場合のみ状態をリセット
+    if (loopId === currentLoopId) {
+      resetProgress()
+      phase.value = 'idle'
+      isPlaying.value = false
+    }
   }
 
-  let _toggling = false  // 連打防止フラグ
-
   async function start() {
+    // 既に再生中の場合は何もしない
     if (isPlaying.value) return
+    
+    // 新しいループIDを発行（古いループを無効化）
+    const loopId = ++currentLoopId
+    
     stopAudio()
     isPlaying.value = true
-    stopped     = false
     prev        = null
     wordCount   = 0
     nextRelaxAt = _nextRelaxCount()
-    await loop()
-    isPlaying.value = false
+    
+    await loop(loopId)
   }
 
   async function stop(stopPlayerAudio = true) {
-    stopped         = true
+    // 現在のループを無効化
+    currentLoopId++
+    
     isPlaying.value = false
     prev            = null
     if (stopPlayerAudio) stopAudio()
     phase.value = 'idle'
+    resetProgress()
   }
 
   async function playPhraseByType(type) {
-    await playPhrase(type)
+    // 単発のフレーズ再生用（ループIDは不要）
+    const loopId = currentLoopId
+    await playPhrase(type, loopId)
   }
 
   const toggle = async () => {
-    if (_toggling) return
-    _toggling = true
-    try {
-      if (isPlaying.value) {
-        await stop()
-      } else {
-        start()  // awaitしない
-        // isPlayingがtrueになるまで少し待ってから解除
-        await new Promise(r => setTimeout(r, 150))
-      }
-    } finally {
-      _toggling = false
+    if (isPlaying.value) {
+      await stop()
+    } else {
+      await start()
     }
   }
 
