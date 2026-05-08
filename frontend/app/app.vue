@@ -100,13 +100,33 @@ onUnmounted(() => {
   </Head>
   <div class="min-h-screen flex items-center justify-center bg-animated">
     <div
-      class="relative flex flex-col justify-between overflow-hidden w-full bg-animated"
+      class="relative flex flex-col justify-between overflow-hidden w-full"
       style="max-width:390px; height:100dvh; max-height:844px;"
     >
+      <!-- 背景キャラクター画像（全体表示） -->
+      <Transition name="fade-character">
+        <div
+          v-if="selectedSpeaker?.id === 50"
+          key="nurse-robot-bg"
+          class="character-background"
+        >
+          <img
+            src="/TT.png"
+            alt="ナースロボ＿タイプＴ"
+            style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; object-position:center"
+          />
+          <!-- グラデーションオーバーレイ（上下をぼかす） -->
+          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, rgba(13,15,24,0.85) 0%, rgba(13,15,24,0.3) 25%, rgba(13,15,24,0.3) 75%, rgba(13,15,24,0.85) 100%); pointer-events:none"></div>
+        </div>
+      </Transition>
 
+      <!-- 通常の背景アニメーション -->
+      <div class="bg-animated-layer"></div>
+
+      <!-- コンテンツ（文字・ボタン） -->
       <div
         class="flex items-center justify-between px-6"
-        style="padding-top:20px; padding-bottom:4px; flex-shrink:0"
+        style="padding-top:20px; padding-bottom:4px; flex-shrink:0; position:relative; z-index:10"
       >
         <p style="font-size:13px; color:rgba(232,234,240,0.35); letter-spacing:0.08em">SOMNIOVOX<span style="font-size:10px; opacity:0.6">（仮）</span> v0.8</p>
         <div class="flex items-center" style="gap:16px">
@@ -125,18 +145,18 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="text-center px-8" style="padding-top:32px">
-        <p class="text-xs tracking-widest uppercase mb-4" style="color:#9aa0b0; height:16px">
+      <div class="text-center px-8" style="padding-top:12px; flex-shrink:0; position:relative; z-index:10">
+        <p class="text-xs tracking-widest uppercase mb-3" style="color:#9aa0b0; height:14px">
           {{ phaseLabel }}&nbsp;
         </p>
 
-        <div style="position:relative; height:80px; display:flex; align-items:center; justify-content:center">
+        <div style="position:relative; height:70px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px); border-radius:12px; padding:12px">
 
           <Transition name="fade-word">
             <p
               v-if="phase !== 'phrase'"
               :key="word"
-              style="position:absolute; font-size:56px; color:rgba(232,234,240,0.45); letter-spacing:-0.01em; font-family:serif; line-height:1; margin:0"
+              style="position:absolute; font-size:50px; color:rgba(232,234,240,0.6); letter-spacing:-0.01em; font-family:serif; line-height:1; margin:0; text-shadow:0 2px 12px rgba(0,0,0,0.5)"
             >
               {{ word }}
             </p>
@@ -146,7 +166,7 @@ onUnmounted(() => {
             <p
               v-if="phase === 'phrase' && phrase"
               :key="phrase"
-              style="position:absolute; font-size:22px; color:rgba(180,200,220,0.6); letter-spacing:0.05em; font-family:serif; line-height:1.4; margin:0"
+              style="position:absolute; font-size:20px; color:rgba(232,234,240,0.6); letter-spacing:0.05em; font-family:serif; line-height:1.4; margin:0; text-shadow:0 2px 8px rgba(0,0,0,0.5)"
             >
               {{ phrase }}
             </p>
@@ -155,7 +175,10 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="px-8 flex flex-col" style="padding-bottom:64px; gap:28px">
+      <!-- スペーサー -->
+      <div style="flex-grow:1"></div>
+
+      <div class="px-8 flex flex-col" style="padding-bottom:100px; gap:28px; flex-shrink:0; position:relative; z-index:10">
         <ProgressBar :progress="progress" :phase="phase" />
         <PlayerControls
           :is-playing="isPlaying"
@@ -196,7 +219,22 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.bg-animated {
+.character-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.bg-animated-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
   background:
     radial-gradient(ellipse 120% 60% at 50% 0%,   #2d1b4e 0%, transparent 70%),
     radial-gradient(ellipse 120% 60% at 50% 50%,  #0f2a4a 0%, transparent 70%),
@@ -232,6 +270,25 @@ onUnmounted(() => {
   opacity: 1;
 }
 .fade-word-leave-to {
+  opacity: 0;
+}
+
+.fade-character-enter-active {
+  transition: opacity 1s ease;
+}
+.fade-character-leave-active {
+  transition: opacity 0.8s ease;
+}
+.fade-character-enter-from {
+  opacity: 0;
+}
+.fade-character-enter-to {
+  opacity: 1;
+}
+.fade-character-leave-from {
+  opacity: 1;
+}
+.fade-character-leave-to {
   opacity: 0;
 }
 </style>
