@@ -111,7 +111,7 @@ onUnmounted(() => {
           class="character-background"
         >
           <img
-            src="/TT.png"
+            src="/TT.webp"
             alt="ナースロボ＿タイプＴ"
             style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; object-position:center"
           />

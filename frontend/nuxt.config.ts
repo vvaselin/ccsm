@@ -62,7 +62,25 @@ export default defineNuxtConfig({
     workbox: {
       globPatterns: ['**/*.{js,css,html,json,png,svg,ico}'],
 
+      maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+
       runtimeCaching: [
+        // キャラクター画像（オンデマンド読み込み）
+        {
+          urlPattern: /\/(TT|.*character.*)\.png$/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'character-images',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 90, // 90日間
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
+        // 音声ファイル
         {
           urlPattern: /\/audio_cache\/.*\.wav$/,
           handler: 'CacheFirst',
@@ -77,6 +95,7 @@ export default defineNuxtConfig({
             },
           },
         },
+        // vocab.json
         {
           urlPattern: /\/vocab\.json$/,
           handler: 'CacheFirst',
@@ -90,6 +109,7 @@ export default defineNuxtConfig({
             },
           },
         },
+        // phrases.json
         {
           urlPattern: /\/phrases\.json$/,
           handler: 'CacheFirst',
