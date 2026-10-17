@@ -2,13 +2,15 @@
 // アプリ全体で共有する AudioContext と、バックグラウンド再生のための配管
 //
 // 配線:
-//   全ての音 → master(Gain) → MediaStreamDestination → <audio> 要素 → スピーカー
+//   全ての音 → master(Gain) → ctx.destination（通常の Web Audio 出力）
+//   それとは別に、<audio> 要素で /keepalive.mp3（10秒・ほぼ無音）をループ再生する
 //
 // なぜこうするか:
-//   Web Audio API だけで鳴らしていると、Android Chrome は画面オフ時に
-//   このページを「音楽再生中」と見なさず、タイマーを間引いたり
-//   プロセスを止めたりする。<audio> 要素が再生中であれば
-//   メディア再生として扱われ、ロック画面にもコントロールが出る。
+//   Android Chrome は「5秒以上のメディアを <audio>/<video> 要素で再生中」のときだけ
+//   そのページをメディア再生中と扱う。通知欄・ロック画面のコントロールが出るのも、
+//   画面オフでプロセスが止められなくなるのも、この条件を満たしたときだけ。
+//   Web Audio API の出力や、MediaStream を srcObject にした <audio> は対象外
+//   （後者は Chrome が WontFix にしている）。なので実ファイルをループさせる。
 //
 // 使い方:
 //   - unlock()      : 再生ボタンのタップ処理の中で「同期的に」最初に呼ぶ
@@ -18,13 +20,13 @@
 //                     バックグラウンドでも間引かれない
 //   - setPlaying(b) : <audio> 要素の再生/停止と MediaSession の状態を切り替える
 
+const KEEPALIVE_SRC = '/keepalive.mp3'
+
 let ctx = null
 let master = null
-let streamDest = null
 let audioEl = null
 let silentBuf = null
 let unlocked = false
-let outputMode = 'none'        // 'stream' | 'direct'
 let internalPause = false      // 自分で pause() したときに true
 const handlers = { play: null, pause: null }
 
@@ -34,6 +36,7 @@ export function getCtx() {
     ctx = new AudioContext({ latencyHint: 'playback' })
     master = ctx.createGain()
     master.gain.value = 1
+    master.connect(ctx.destination)
 
     // 画面復帰時やシステム側で止められた時に復帰させる
     ctx.addEventListener('statechange', () => {
@@ -60,35 +63,23 @@ export function unlock() {
   if (unlocked) return
   unlocked = true
 
-  try {
-    streamDest = c.createMediaStreamDestination()
-    master.connect(streamDest)
+  audioEl = document.createElement('audio')
+  audioEl.src     = KEEPALIVE_SRC
+  audioEl.loop    = true
+  audioEl.preload = 'auto'
+  audioEl.setAttribute('playsinline', '')
+  audioEl.style.display = 'none'
+  document.body.appendChild(audioEl)
 
-    audioEl = document.createElement('audio')
-    audioEl.srcObject = streamDest.stream
-    audioEl.setAttribute('playsinline', '')
-    audioEl.style.display = 'none'
-    document.body.appendChild(audioEl)
+  // ロック画面やイヤホンのボタンで止められたとき
+  audioEl.addEventListener('pause', () => {
+    if (internalPause) { internalPause = false; return }   // 自分で止めた
+    handlers.pause?.()                                       // 外から止められた
+  })
 
-    // ロック画面やイヤホンのボタンで止められたとき
-    audioEl.addEventListener('pause', () => {
-      if (internalPause) { internalPause = false; return }   // 自分で止めた
-      handlers.pause?.()                                       // 外から止められた
-    })
-
-    outputMode = 'stream'
-    audioEl.play().catch(() => fallbackDirect())
-  } catch {
-    fallbackDirect()
-  }
-}
-
-// <audio> 経由が使えない環境では直接出力に切り替える（バックグラウンド再生は保証されない）
-function fallbackDirect() {
-  if (outputMode === 'direct') return
-  outputMode = 'direct'
-  try { master.disconnect() } catch {}
-  master.connect(ctx.destination)
+  audioEl.play().catch(() => {
+    // 失敗しても Web Audio 自体は鳴る。バックグラウンド再生だけが保証されなくなる
+  })
 }
 
 // 再生中かどうかを OS に伝える（<audio> の再生状態 = 通知やロック画面の表示）
