@@ -1,7 +1,9 @@
 // composables/useAmbientSound.js
 // Web Audio API による環境音生成（複数同時再生・個別音量管理）
 
-import { ref, reactive } from 'vue'
+import { reactive, onMounted } from 'vue'
+import { getCtx as getEngineCtx, getMaster, audioWait } from '~/composables/useAudioEngine'
+import { loadSettings, saveSettings } from '~/composables/useSettings'
 
 // ピンクノイズに合わせた音量上限（小さめ）
 const MAX_VOLUME = 0.5
@@ -24,14 +26,25 @@ export function useAmbientSound() {
   // セッション再生中かどうか（start/stop と連動）
   let sessionActive = false
 
-  // サウンドごとの AudioContext リソース
-  let audioCtx = null
+  // 保存済みの ON/OFF・音量を復元（プリレンダーと食い違わないようマウント後）
+  onMounted(() => {
+    const saved = loadSettings().ambient || {}
+    for (const id of Object.keys(states)) {
+      if (saved[id]) Object.assign(states[id], saved[id])
+    }
+  })
+
+  function persist() {
+    saveSettings({ ambient: JSON.parse(JSON.stringify(states)) })
+  }
+
+  // サウンドごとのノード（AudioContext は useAudioEngine で共有）
   const nodes = {}  // { [id]: { gainNode, stopFn } }
 
   function getCtx() {
-    if (!audioCtx) audioCtx = new AudioContext()
-    if (audioCtx.state === 'suspended') audioCtx.resume()
-    return audioCtx
+    const ctx = getEngineCtx()
+    if (ctx.state === 'suspended') ctx.resume()
+    return ctx
   }
 
   // ---- ノイズバッファ生成 ----
@@ -163,13 +176,13 @@ export function useAmbientSound() {
 
     async function dropLoop() {
       while (running) {
-        await new Promise(r => setTimeout(r, 90 + Math.random() * 220))
+        await audioWait(90 + Math.random() * 220)   // 背面でも間引かれない
         if (!running) break
         playDrop()
 
         // たまに2粒続けて落ちる
         if (Math.random() < 0.2) {
-          await new Promise(r => setTimeout(r, 30 + Math.random() * 50))
+          await audioWait(30 + Math.random() * 50)
           if (!running) break
           playDrop()
         }
@@ -234,7 +247,7 @@ export function useAmbientSound() {
     const ctx  = getCtx()
     const gain = ctx.createGain()
     gain.gain.value = Math.min(states[id].volume, MAX_VOLUME)
-    gain.connect(ctx.destination)
+    gain.connect(getMaster())
 
     const starters = { pink: startPink, brown: startBrown, rain: startRain, binaural: startBinaural }
     const stopFn   = starters[id]?.(ctx, gain)
@@ -251,6 +264,7 @@ export function useAmbientSound() {
 
   function toggle(id) {
     states[id].enabled = !states[id].enabled
+    persist()
     if (states[id].enabled && sessionActive) {
       _startOne(id)
     } else if (!states[id].enabled) {
@@ -261,6 +275,7 @@ export function useAmbientSound() {
   function setVolume(id, v) {
     const clamped = Math.min(v, MAX_VOLUME)
     states[id].volume = clamped
+    persist()
     if (nodes[id]) {
       nodes[id].gainNode.gain.setTargetAtTime(clamped, getCtx().currentTime, 0.02)
     }
@@ -285,12 +300,12 @@ export function useAmbientSound() {
     sessionActive = false
 
     if (holdMs > 0) {
-      await new Promise(r => setTimeout(r, holdMs))
+      await audioWait(holdMs)
     }
 
     // 再生中のノードにフェードをかける
-    const ctx = audioCtx  // 新しいcontextを作らず既存のものだけ使う
-    if (ctx) {
+    const ctx = getEngineCtx()
+    {
       AMBIENT_SOUNDS.forEach(s => {
         if (!nodes[s.id]) return
         const g   = nodes[s.id].gainNode
@@ -301,14 +316,13 @@ export function useAmbientSound() {
       })
     }
 
-    await new Promise(r => setTimeout(r, fadeDurationMs + 200))
+    await audioWait(fadeDurationMs + 200)
     AMBIENT_SOUNDS.forEach(s => _stopOne(s.id))
   }
 
   function dispose() {
     stopAudio()
-    audioCtx?.close()
-    audioCtx = null
+    // AudioContext は共有なのでここでは閉じない
   }
 
   return {

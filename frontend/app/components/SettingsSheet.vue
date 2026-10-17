@@ -1,8 +1,8 @@
 <!-- components/SettingsSheet.vue -->
 <script setup>
-import { ref } from 'vue'
 import { SPEAKERS }       from '~/composables/useSpeaker'
 import { AMBIENT_SOUNDS } from '~/composables/useAmbientSound'
+import { useSheetDrag }   from '~/composables/useSheetDrag'
 
 defineProps({
   show:            { type: Boolean, required: true },
@@ -12,38 +12,8 @@ defineProps({
 
 const emit = defineEmits(['close', 'selectSpeaker', 'toggleAmbient', 'setAmbientVolume'])
 
-// スワイプ機能
-const sheetRef = ref(null)
-const isDragging = ref(false)
-const startY = ref(0)
-const currentY = ref(0)
-
-function onTouchStart(e) {
-  isDragging.value = true
-  startY.value = e.touches[0].clientY
-  currentY.value = 0
-}
-
-function onTouchMove(e) {
-  if (!isDragging.value) return
-  const deltaY = e.touches[0].clientY - startY.value
-  if (deltaY > 0) { // 下方向のみ
-    currentY.value = deltaY
-    e.preventDefault()
-  }
-}
-
-function onTouchEnd() {
-  if (!isDragging.value) return
-  isDragging.value = false
-  
-  // 100px以上スワイプしたら閉じる
-  if (currentY.value > 100) {
-    emit('close')
-  }
-  
-  currentY.value = 0
-}
+// 下スワイプで閉じる（シート全体で受ける。中身が最上部にあるときだけ動く）
+const { dragY, isDragging, scrollRef, handlers: dragHandlers } = useSheetDrag(() => emit('close'))
 </script>
 
 <template>
@@ -55,30 +25,31 @@ function onTouchEnd() {
       @click.self="$emit('close')"
     >
       <div
-        ref="sheetRef"
         class="w-full flex flex-col"
+        v-bind="dragHandlers"
         :style="{
           background: '#1a1f2a',
           borderTop: '1px solid rgba(126,184,201,0.12)',
           borderRadius: '24px 24px 0 0',
           maxHeight: '72dvh',
-          transform: `translateY(${currentY}px)`,
-          transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+          transform: `translateY(${dragY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+          overscrollBehavior: 'contain'
         }"
       >
-        <!-- ハンドル（固定・ドラッグ可能） -->
-        <div style="padding:16px 24px 0; flex-shrink:0">
+        <!-- ハンドル（当たり判定はこのヘッダー全体） -->
+        <div style="padding:14px 24px 0; flex-shrink:0; touch-action:none">
           <div
             class="rounded-full mx-auto"
-            style="width:36px; height:3px; background:rgba(255,255,255,0.15); margin-bottom:16px; cursor:grab; touch-action:none"
-            @touchstart="onTouchStart"
-            @touchmove="onTouchMove"
-            @touchend="onTouchEnd"
+            style="width:36px; height:4px; background:rgba(255,255,255,0.18); margin-bottom:14px"
           />
         </div>
 
         <!-- スクロール領域 -->
-        <div style="overflow-y:auto; padding:0 24px 48px; flex:1">
+        <div
+          ref="scrollRef"
+          style="overflow-y:auto; overscroll-behavior:contain; padding:0 24px 48px; flex:1"
+        >
 
           <!-- 声 -->
           <p class="text-xs tracking-widest uppercase" style="color:#6a7a90; margin-bottom:12px">

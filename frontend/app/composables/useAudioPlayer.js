@@ -1,28 +1,24 @@
 // composables/useAudioPlayer.js
-// Web Audio API による音声再生・進捗バー管理
+// 単語・セリフ音声の再生と進捗バー管理（出力は useAudioEngine 経由）
 
 import { ref } from 'vue'
+import { getCtx, getMaster, audioWait } from '~/composables/useAudioEngine'
 
 const PAN_STRENGTH = 0.8
 
 export function useAudioPlayer() {
   const progress = ref(0)
 
-  let audioCtx      = null
   let currentSource = null
   let progressTimer = null
   let panSide       = 1
 
-  function getAudioCtx() {
-    if (!audioCtx) audioCtx = new AudioContext()
-    return audioCtx
-  }
-
   async function playAudio(audioUrl, panValue = 0) {
-    const ctx = getAudioCtx()
+    const ctx = getCtx()
     if (ctx.state === 'suspended') await ctx.resume()
 
     const res      = await fetch(audioUrl)
+    if (!res.ok) throw new Error(`音声の取得に失敗: ${audioUrl}`)
     const arrayBuf = await res.arrayBuffer()
     const buffer   = await ctx.decodeAudioData(arrayBuf)
 
@@ -36,7 +32,7 @@ export function useAudioPlayer() {
       panner.pan.value = panValue
       source.buffer = buffer
       source.connect(panner)
-      panner.connect(ctx.destination)
+      panner.connect(getMaster())
       source.onended = () => resolve(buffer.duration)
       source.start()
       currentSource = source
@@ -47,9 +43,10 @@ export function useAudioPlayer() {
     clearInterval(progressTimer)
     progress.value = 0
     const start = Date.now()
+    // UI 用。背面では間引かれるが、戻ってきた時に Date.now() で追いつくので問題ない
     progressTimer = setInterval(() => {
       progress.value = Math.min(((Date.now() - start) / durationMs) * 100, 100)
-    }, 16)
+    }, 50)
   }
 
   function resetProgress() {
@@ -85,5 +82,6 @@ export function useAudioPlayer() {
     stopAudio,
     startProgress,
     resetProgress,
+    wait: audioWait,   // ループの待機に使う（setTimeout の代わり）
   }
 }

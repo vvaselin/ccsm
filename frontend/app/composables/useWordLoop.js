@@ -1,5 +1,6 @@
 // composables/useWordLoop.js
 // 単語取得・読み上げのメインループ（APIなし・フロント完結版）
+// 待機は setTimeout ではなく音声クロック（useAudioEngine.audioWait）で行う
 
 import { ref, computed } from 'vue'
 import { useWordPicker } from '~/composables/useWordPicker'
@@ -11,7 +12,7 @@ const RELAX_INTERVAL  = 10
 const RELAX_JITTER    = 3
 
 // 音声ファイルのベースURL
-// 本番（GCS）: VITE_AUDIO_BASE_URL=https://storage.googleapis.com/cssm-audio
+// 本番（Cloudflare R2）: VITE_AUDIO_BASE_URL=https://<R2の公開URL>
 // ローカル: public/audio_cache/ を参照
 const AUDIO_BASE = import.meta.env.VITE_AUDIO_BASE_URL || '/audio_cache'
 
@@ -58,7 +59,7 @@ function getRandomPauseTime() {
   return PAUSE_MIN_MS + Math.random() * (PAUSE_MAX_MS - PAUSE_MIN_MS)
 }
 
-export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, startProgress, resetProgress, stopAudio }) {
+export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, startProgress, resetProgress, stopAudio, wait }) {
   const { pickNext } = useWordPicker()
 
   const word      = ref('再生ボタンで開始')
@@ -102,7 +103,7 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
       // 待機中にループが無効化されていないかチェック
       if (loopId !== currentLoopId) return
       
-      await new Promise(resolve => setTimeout(resolve, PHRASE_PAUSE_MS))
+      await wait(PHRASE_PAUSE_MS)   // 音声クロックで待つ（背面でも間引かれない）
     } catch {
       // セリフ再生失敗は無視してループ継続
     } finally {
@@ -169,7 +170,7 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
       phase.value = 'pause'
       resetProgress()
       startProgress(pauseTime)
-      await new Promise(resolve => setTimeout(resolve, pauseTime))
+      await wait(pauseTime)
 
       if (loopId !== currentLoopId) break
       phase.value = 'loading'

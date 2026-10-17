@@ -1,12 +1,17 @@
 <!-- app.vue -->
 <script setup>
-import { ref, computed, onUnmounted, onMounted } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAudioPlayer }  from '~/composables/useAudioPlayer'
 import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
 import { useSpeaker }      from '~/composables/useSpeaker'
 import { useAmbientSound } from '~/composables/useAmbientSound'
-
+import {
+  unlock as unlockAudio,
+  setPlaying as setEnginePlaying,
+  setupMediaSession,
+  updateMediaMetadata,
+} from '~/composables/useAudioEngine'
 
 const {
   progress,
@@ -15,6 +20,7 @@ const {
   stopAudio: stopPlayerAudio,
   startProgress,
   resetProgress,
+  wait,
 } = useAudioPlayer()
 
 const {
@@ -45,38 +51,59 @@ const {
   phaseLabel,
   stop:              _stop,
   start:             _start,
-  toggle:            _toggle,
   playPhraseByType,
 } = useWordLoop(
   computed(() => selectedSpeaker.value?.id),
-  { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio }
+  { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio, wait }
 )
 
 async function stop() {
   await _stop()
   stopAmbient()
+  setEnginePlaying(false)
 }
 
 async function stopWithPhrase() {
   await _stop(true)
   await playPhraseByType('stop')
   await fadeOutAudio(0, 3000)
+  setEnginePlaying(false)
 }
 
-async function start() {
-  await _start()
+// ユーザーのタップから同期的に呼ばれる必要がある（unlockAudio のため）
+function start() {
+  if (isPlaying.value) return
+  unlockAudio()
+  setEnginePlaying(true)
   startAmbient()
+  _start()
 }
 
-const toggle = async () => {
+const toggle = () => {
   if (isPlaying.value) {
-    await _stop()
-    stopAmbient()
+    stop()
   } else {
-    startAmbient()
-    _toggle()
+    start()
   }
 }
+
+// ロック画面・通知・イヤホンのボタン
+onMounted(() => {
+  setupMediaSession({
+    title:   'SOMNIOVOX',
+    artist:  selectedSpeaker.value?.name ?? '',
+    artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
+    onPlay:  () => start(),
+    onPause: () => stop(),
+  })
+})
+watch(selectedSpeaker, (s) => {
+  updateMediaMetadata({
+    title:   'SOMNIOVOX',
+    artist:  s?.name ?? '',
+    artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
+  })
+})
 
 const showSettingsMenu = ref(false)
 const showInfoSheet = ref(null)

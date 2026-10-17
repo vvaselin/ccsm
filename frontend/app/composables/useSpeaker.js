@@ -1,7 +1,8 @@
 // composables/useSpeaker.js
-// スピーカー選択の管理
+// スピーカー選択の管理（選択は localStorage に保存）
 
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { loadSettings, saveSettings } from '~/composables/useSettings'
 
 export const SPEAKERS = [
   { id: 19,  name: '九州そら',   style: 'ささやき' },
@@ -22,8 +23,15 @@ export function useSpeaker() {
     SPEAKERS.find(s => s.id === DEFAULT_SPEAKER_ID)
   )
 
+  // プリレンダーと食い違わないよう、復元はマウント後に行う
+  onMounted(() => {
+    const saved = SPEAKERS.find(s => s.id === loadSettings().speakerId)
+    if (saved) selectedSpeaker.value = saved
+  })
+
   function selectSpeaker(speaker) {
     selectedSpeaker.value = speaker
+    saveSettings({ speakerId: speaker.id })
   }
 
   return {
