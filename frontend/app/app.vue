@@ -41,6 +41,7 @@ const {
   stopAudio:      stopAmbient,
   fadeOutAudio,
   dispose:        disposeAmbient,
+  setVariant: setAmbientVariant,
 } = useAmbientSound()
 
 const {
@@ -249,6 +250,7 @@ onUnmounted(() => {
         @select-speaker="selectSpeaker"
         @toggle-ambient="toggleAmbient"
         @set-ambient-volume="setAmbientVolume"
+        @set-ambient-variant="setAmbientVariant"
       />
 
       <InfoSheet

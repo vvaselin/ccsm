@@ -60,7 +60,7 @@ export default defineNuxtConfig({
     },
 
     workbox: {
-      globPatterns: ['**/*.{js,css,html,json,png,svg,ico}', 'keepalive.mp3'],
+      globPatterns: ['**/*.{js,css,html,json,png,svg,ico}', 'keepalive.mp3', 'ambient/*.mp3'],
 
       maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
 

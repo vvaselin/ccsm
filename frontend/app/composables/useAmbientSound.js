@@ -1,5 +1,7 @@
 // composables/useAmbientSound.js
-// Web Audio API による環境音生成（複数同時再生・個別音量管理）
+// 環境音（複数同時再生・個別音量管理）
+//   kind: 'synth' … Web Audio で合成（ノイズ、バイノーラル）
+//   kind: 'file'  … public/ambient/ の音源を AudioBuffer にしてループ再生
 
 import { reactive, onMounted } from 'vue'
 import { getCtx as getEngineCtx, getMaster, audioWait } from '~/composables/useAudioEngine'
@@ -8,18 +10,47 @@ import { loadSettings, saveSettings } from '~/composables/useSettings'
 // ピンクノイズに合わせた音量上限（小さめ）
 const MAX_VOLUME = 0.5
 
+// ファイル音源の継ぎ目処理
+const LOOP_TRIM_SEC  = 0.03   // mp3 のエンコード無音を避けるため前後を少し削る
+const FILE_FADE_SEC  = 0.6    // 開始・停止・切り替え時のフェード
+
 export const AMBIENT_SOUNDS = [
-  { id: 'pink',     label: 'ピンクノイズ',  icon: '~'  },
-  { id: 'brown',    label: 'ブラウンノイズ', icon: '='  },
-  { id: 'rain',     label: '雨音',          icon: '*'  },
-  { id: 'binaural', label: 'バイノーラル',   icon: 'o'  },
+  { id: 'pink',     label: 'ピンクノイズ',  icon: '~', kind: 'synth' },
+  { id: 'brown',    label: 'ブラウンノイズ', icon: '=', kind: 'synth' },
+  {
+    id: 'rain', label: '雨音', icon: '*', kind: 'file',
+    // level: 合成ノイズ（かなり小さい）と音量感を揃えるための係数。耳で調整する
+    level: 0.18,
+    defaultVariant: 'normal',
+    variants: [
+      { id: 'quiet',  label: '静か', src: '/ambient/rain_quiet.mp3',  gain: 1.0 },
+      { id: 'normal', label: '普通', src: '/ambient/rain_normal.mp3', gain: 1.0 },
+      { id: 'heavy',  label: '強い', src: '/ambient/rain_heavy.mp3',  gain: 1.0 },
+    ],
+  },
+  { id: 'binaural', label: 'バイノーラル',   icon: 'o', kind: 'synth' },
 ]
+
+const SOUND_BY_ID = Object.fromEntries(AMBIENT_SOUNDS.map(s => [s.id, s]))
+
+// デコード済みバッファのキャッシュ（src → AudioBuffer）。
+// 60秒モノラルで約 11MB。雨3種で 35MB 弱なので全部持っていても問題ない
+const bufferCache = new Map()
+
+async function loadBuffer(ctx, src) {
+  if (bufferCache.has(src)) return bufferCache.get(src)
+  const res = await fetch(src)
+  if (!res.ok) throw new Error(`環境音の取得に失敗: ${src}`)
+  const buf = await ctx.decodeAudioData(await res.arrayBuffer())
+  bufferCache.set(src, buf)
+  return buf
+}
 
 export function useAmbientSound() {
   // サウンドごとの状態
   const states = reactive(
     Object.fromEntries(
-      AMBIENT_SOUNDS.map(s => [s.id, { enabled: false, volume: 0.3 }])
+      AMBIENT_SOUNDS.map(s => [s.id, { enabled: false, volume: 0.3, variant: s.defaultVariant ?? null }])
     )
   )
 
@@ -98,103 +129,34 @@ export function useAmbientSound() {
     return () => { try { src.stop() } catch {} }
   }
 
-  function startRain(ctx, gain) {
-    let running = true
+  // ---- ファイル音源：AudioBuffer をループ再生 ----
+  // <audio loop> だと mp3 の先頭・末尾の無音で継ぎ目が切れるので、
+  // loopStart / loopEnd で少し内側をループさせる
+  function startBufferLoop(ctx, gain, buffer, level) {
+    const src = ctx.createBufferSource()
+    src.buffer    = buffer
+    src.loop      = true
+    src.loopStart = LOOP_TRIM_SEC
+    src.loopEnd   = Math.max(buffer.duration - LOOP_TRIM_SEC, LOOP_TRIM_SEC + 1)
 
-    // ---- 空気感：ブラウンノイズを極小で敷くだけ ----
-    const baseSrc = ctx.createBufferSource()
-    baseSrc.buffer = makeBrownBuffer(ctx)
-    baseSrc.loop   = true
-    const baseLpf = ctx.createBiquadFilter()
-    baseLpf.type            = 'lowpass'
-    baseLpf.frequency.value = 300
-    baseLpf.Q.value         = 0.2
-    const baseGain = ctx.createGain()
-    baseGain.gain.value = 0.018
-    baseSrc.connect(baseLpf)
-    baseLpf.connect(baseGain)
-    baseGain.connect(gain)
-    baseSrc.start()
+    const lv = ctx.createGain()
+    lv.gain.setValueAtTime(0, ctx.currentTime)
+    lv.gain.linearRampToValueAtTime(level, ctx.currentTime + FILE_FADE_SEC)   // フェードイン
 
-    // ---- コトッ音：ノイズ × 指数減衰でインパルス感を出す ----
-    function playDrop() {
-      // アタック部（ごく短いノイズバースト）+ テール部（こもった余韻）
-      const attackLen = Math.floor(ctx.sampleRate * 0.004)   // 4ms アタック
-      const tailLen   = Math.floor(ctx.sampleRate * (0.04 + Math.random() * 0.05))  // 40〜90ms 余韻
-      const totalLen  = attackLen + tailLen
-      const buf       = ctx.createBuffer(1, totalLen, ctx.sampleRate)
-      const d         = buf.getChannelData(0)
-
-      for (let i = 0; i < totalLen; i++) {
-        const white = Math.random() * 2 - 1
-        if (i < attackLen) {
-          // アタック：フルノイズ（立ち上がりをはっきりさせる）
-          d[i] = white
-        } else {
-          // テール：急速に減衰するノイズ（余韻）
-          const t = (i - attackLen) / ctx.sampleRate
-          d[i] = white * Math.exp(-t / 0.015)
-        }
-      }
-
-      const src = ctx.createBufferSource()
-      src.buffer = buf
-
-      // LPF：高域を削って布・木のこもり感に。周波数を低めに固定
-      const lpf = ctx.createBiquadFilter()
-      lpf.type            = 'lowpass'
-      lpf.frequency.value = 400 + Math.random() * 300   // 400〜700Hz
-      lpf.Q.value         = 0.4
-
-      // GainNodeでエンベロープをかけて音量のばらつきを出す
-      const g = ctx.createGain()
-      g.gain.value = 0.12 + Math.random() * 0.18  // ゲイン下げる
-
-      src.connect(lpf)
-      lpf.connect(g)
-      g.connect(gain)
-      src.start()
-    }
-
-    // ---- サーッ音：ピンクノイズをBPFで雨っぽい帯域に絞る ----
-    const rushSrc = ctx.createBufferSource()
-    rushSrc.buffer = makePinkBuffer(ctx)
-    rushSrc.loop   = true
-
-    const rushBpf = ctx.createBiquadFilter()
-    rushBpf.type            = 'bandpass'
-    rushBpf.frequency.value = 2000   // 2kHz付近：雨の「サーッ」帯域
-    rushBpf.Q.value         = 0.6    // 広めに通す
-
-    const rushGain = ctx.createGain()
-    rushGain.gain.value = 0.22
-
-    rushSrc.connect(rushBpf)
-    rushBpf.connect(rushGain)
-    rushGain.connect(gain)
-    rushSrc.start()
-
-    async function dropLoop() {
-      while (running) {
-        await audioWait(90 + Math.random() * 220)   // 背面でも間引かれない
-        if (!running) break
-        playDrop()
-
-        // たまに2粒続けて落ちる
-        if (Math.random() < 0.2) {
-          await audioWait(30 + Math.random() * 50)
-          if (!running) break
-          playDrop()
-        }
-      }
-    }
-
-    dropLoop()
+    src.connect(lv)
+    lv.connect(gain)
+    src.start(0, LOOP_TRIM_SEC)
 
     return () => {
-      running = false
-      try { baseSrc.stop() } catch {}
-      try { rushSrc.stop() } catch {}
+      // フェードアウトしてから止める
+      const now = ctx.currentTime
+      lv.gain.cancelScheduledValues(now)
+      lv.gain.setValueAtTime(lv.gain.value, now)
+      lv.gain.linearRampToValueAtTime(0, now + FILE_FADE_SEC)
+      audioWait(FILE_FADE_SEC * 1000 + 50).then(() => {
+        try { src.stop() } catch {}
+        try { src.disconnect(); lv.disconnect() } catch {}
+      })
     }
   }
 
@@ -244,14 +206,31 @@ export function useAmbientSound() {
 
   function _startOne(id) {
     if (nodes[id]) return
-    const ctx  = getCtx()
-    const gain = ctx.createGain()
+    const sound = SOUND_BY_ID[id]
+    const ctx   = getCtx()
+    const gain  = ctx.createGain()
     gain.gain.value = Math.min(states[id].volume, MAX_VOLUME)
     gain.connect(getMaster())
 
-    const starters = { pink: startPink, brown: startBrown, rain: startRain, binaural: startBinaural }
-    const stopFn   = starters[id]?.(ctx, gain)
-    nodes[id]      = { gainNode: gain, stopFn }
+    const entry = { gainNode: gain, stopFn: null }
+    nodes[id] = entry
+
+    if (sound.kind === 'file') {
+      // 非同期で読み込む。読み込み中に止められたら entry が差し替わっているので捨てる
+      const variant = sound.variants.find(v => v.id === states[id].variant) ?? sound.variants[0]
+      loadBuffer(ctx, variant.src)
+        .then((buffer) => {
+          if (nodes[id] !== entry) return
+          entry.stopFn = startBufferLoop(ctx, gain, buffer, (sound.level ?? 1) * (variant.gain ?? 1))
+        })
+        .catch(() => {
+          if (nodes[id] === entry) nodes[id] = null
+        })
+      return
+    }
+
+    const starters = { pink: startPink, brown: startBrown, binaural: startBinaural }
+    entry.stopFn = starters[id]?.(ctx, gain)
   }
 
   function _stopOne(id) {
@@ -269,6 +248,18 @@ export function useAmbientSound() {
       _startOne(id)
     } else if (!states[id].enabled) {
       _stopOne(id)
+    }
+  }
+
+  // 雨の強さなどの切り替え。再生中なら止めて鳴らし直す（フェードで繋がる）
+  function setVariant(id, variantId) {
+    const sound = SOUND_BY_ID[id]
+    if (!sound?.variants?.some(v => v.id === variantId)) return
+    states[id].variant = variantId
+    persist()
+    if (nodes[id]) {
+      _stopOne(id)
+      _startOne(id)
     }
   }
 
@@ -329,6 +320,7 @@ export function useAmbientSound() {
     states,
     toggle,
     setVolume,
+    setVariant,
     startIfEnabled,
     stopAudio,
     fadeOutAudio,
