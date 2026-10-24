@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "frontend", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "frontend-prod",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5502", "--bind", "127.0.0.1", "--directory", "frontend/.output/public"],
+      "port": 5502
+    },
+    {
+      "name": "ui-mocks",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5501", "--bind", "127.0.0.1", "--directory", "frontend"],
+      "port": 5501
+    }
+  ]
+}

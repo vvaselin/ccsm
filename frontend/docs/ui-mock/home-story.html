@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SOMNIOVOX ホーム（おはなし）</title>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Shippori+Mincho:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7ee0b8;text-decoration:none}a:hover{color:#a8ecd0}
+@keyframes sv-wave{from{transform:scaleY(0.35)}to{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){[style*="sv-wave"]{animation:none !important}}
+</style>
+
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; background: radial-gradient(120% 70% at 50% 45%, #3a3e45 0%, #24272c 55%, #17191c 100%); color: #f2f3f5; font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif; font-size: 13px">
+
+  <!-- キャラクター（腰から上。透過画像を背景全面に敷く） -->
+  <img src="../../public/characters/nurse_robo.webp" alt="" aria-hidden="true" style="position: absolute; left: -19px; top: 116px; width: 431px; height: 742px; max-width: none; pointer-events: none; user-select: none">
+  <!-- 上下のスクリム：文字と操作の下だけ暗くする -->
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 230px; background: linear-gradient(rgba(14,15,17,0.72), rgba(14,15,17,0))"></div>
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 240px; background: linear-gradient(rgba(14,15,17,0), rgba(14,15,17,0.78))"></div>
+
+  <!-- ヘッダー -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 56px; padding: 0 12px 0 20px; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: baseline; gap: 8px">
+      <span style="font-size: 12px; font-weight: 500; letter-spacing: 0.22em; color: #f2f3f5; text-shadow: 0 1px 2px rgba(0,0,0,0.6)">SOMNIOVOX</span>
+      <span style="font-size: 11px; letter-spacing: 0.06em; color: #a9aeb6">v0.9</span>
+    </div>
+    <div style="display: flex; gap: 4px">
+      <a href="#" aria-label="使い方" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; color: #e3e5e9; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7))">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.1.9-1.1 1.8"></path><circle cx="12" cy="17" r="0.6" fill="currentColor"></circle></svg>
+      </a>
+      <a href="#" aria-label="クレジット" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; color: #e3e5e9; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7))">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><circle cx="12" cy="8" r="0.6" fill="currentColor"></circle></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- モード切替（おはなしが選択中） -->
+  <div style="position: absolute; left: 0; right: 0; top: 64px; display: flex; justify-content: center">
+    <div role="group" aria-label="モード" style="display: flex; padding: 3px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.28); background: rgba(24,26,30,0.62); backdrop-filter: blur(10px); box-shadow: 0 6px 18px rgba(0,0,0,0.45);">
+      <a href="home-shuffle.html" aria-pressed="false" style="height: 32px; padding: 0 18px; display: flex; align-items: center; border-radius: 999px; color: #e3e5e9; font-size: 12px; letter-spacing: 0.1em">シャッフル</a>
+      <button type="button" aria-pressed="true" style="height: 32px; padding: 0 18px; border: 0; border-radius: 999px; background: rgba(126,224,184,0.22); color: #7ee0b8; font: inherit; font-size: 12px; letter-spacing: 0.1em; cursor: pointer">おはなし</button>
+    </div>
+  </div>
+
+  <!-- 声の波形（おはなしモードはセリフを出さず、声の揺れだけを見せる） -->
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 122px; height: 64px; display: flex; align-items: center; justify-content: center; gap: 3px; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.5))">
+    <span style="width: 3px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.69s ease-in-out 0.24s infinite alternate"></span>
+    <span style="width: 3px; height: 10px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.43s ease-in-out 0.86s infinite alternate"></span>
+    <span style="width: 3px; height: 12px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.13s ease-in-out 0.81s infinite alternate"></span>
+    <span style="width: 3px; height: 16px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.18s ease-in-out 0.11s infinite alternate"></span>
+    <span style="width: 3px; height: 19px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.21s ease-in-out 1.32s infinite alternate"></span>
+    <span style="width: 3px; height: 18px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.95s ease-in-out 1.0s infinite alternate"></span>
+    <span style="width: 3px; height: 25px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.98s ease-in-out 0.63s infinite alternate"></span>
+    <span style="width: 3px; height: 19px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.36s ease-in-out 1.37s infinite alternate"></span>
+    <span style="width: 3px; height: 22px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.38s ease-in-out 0.19s infinite alternate"></span>
+    <span style="width: 3px; height: 34px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.62s ease-in-out 0.29s infinite alternate"></span>
+    <span style="width: 3px; height: 33px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.59s ease-in-out 0.6s infinite alternate"></span>
+    <span style="width: 3px; height: 23px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.29s ease-in-out 0.1s infinite alternate"></span>
+    <span style="width: 3px; height: 37px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.38s ease-in-out 0.68s infinite alternate"></span>
+    <span style="width: 3px; height: 36px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.37s ease-in-out 0.73s infinite alternate"></span>
+    <span style="width: 3px; height: 42px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.32s ease-in-out 1.12s infinite alternate"></span>
+    <span style="width: 3px; height: 38px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.89s ease-in-out 0.84s infinite alternate"></span>
+    <span style="width: 3px; height: 43px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.98s ease-in-out 0.46s infinite alternate"></span>
+    <span style="width: 3px; height: 29px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.78s ease-in-out 0.67s infinite alternate"></span>
+    <span style="width: 3px; height: 30px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.14s ease-in-out 0.78s infinite alternate"></span>
+    <span style="width: 3px; height: 43px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.62s ease-in-out 1.22s infinite alternate"></span>
+    <span style="width: 3px; height: 49px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.73s ease-in-out 0.5s infinite alternate"></span>
+    <span style="width: 3px; height: 42px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.51s ease-in-out 0.93s infinite alternate"></span>
+    <span style="width: 3px; height: 48px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.53s ease-in-out 1.51s infinite alternate"></span>
+    <span style="width: 3px; height: 43px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.73s ease-in-out 0.1s infinite alternate"></span>
+    <span style="width: 3px; height: 43px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.84s ease-in-out 1.59s infinite alternate"></span>
+    <span style="width: 3px; height: 33px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.7s ease-in-out 0.62s infinite alternate"></span>
+    <span style="width: 3px; height: 26px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.25s ease-in-out 0.74s infinite alternate"></span>
+    <span style="width: 3px; height: 28px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.79s ease-in-out 0.09s infinite alternate"></span>
+    <span style="width: 3px; height: 28px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.45s ease-in-out 0.4s infinite alternate"></span>
+    <span style="width: 3px; height: 44px; border-radius: 2px; background: #7ee0b8; box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.5s ease-in-out 0.13s infinite alternate"></span>
+    <span style="width: 3px; height: 36px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.84s ease-in-out 1.41s infinite alternate"></span>
+    <span style="width: 3px; height: 41px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.47s ease-in-out 0.45s infinite alternate"></span>
+    <span style="width: 3px; height: 29px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.96s ease-in-out 1.41s infinite alternate"></span>
+    <span style="width: 3px; height: 24px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.31s ease-in-out 0.28s infinite alternate"></span>
+    <span style="width: 3px; height: 24px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.63s ease-in-out 0.78s infinite alternate"></span>
+    <span style="width: 3px; height: 23px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.48s ease-in-out 0.01s infinite alternate"></span>
+    <span style="width: 3px; height: 24px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.96s ease-in-out 0.91s infinite alternate"></span>
+    <span style="width: 3px; height: 26px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.66s ease-in-out 0.82s infinite alternate"></span>
+    <span style="width: 3px; height: 24px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.91s ease-in-out 0.09s infinite alternate"></span>
+    <span style="width: 3px; height: 22px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.82s ease-in-out 1.4s infinite alternate"></span>
+    <span style="width: 3px; height: 16px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.19s ease-in-out 0.64s infinite alternate"></span>
+    <span style="width: 3px; height: 15px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.16s ease-in-out 0.1s infinite alternate"></span>
+    <span style="width: 3px; height: 10px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.41s ease-in-out 0.26s infinite alternate"></span>
+    <span style="width: 3px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.45); transform-origin: center; animation: sv-wave 1.24s ease-in-out 0.0s infinite alternate"></span>
+  </div>
+
+  <!-- 朗読全体の進み具合 -->
+  <div aria-hidden="true" style="position: absolute; left: 32px; right: 32px; top: 684px; height: 2px; border-radius: 1px; background: rgba(255,255,255,0.28); box-shadow: 0 1px 3px rgba(0,0,0,0.5)">
+    <div style="width: 62%; height: 2px; border-radius: 1px; background: #7ee0b8"></div>
+  </div>
+
+  <!-- 操作（シャッフルと共通） -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 40px; display: flex; align-items: center; justify-content: center; gap: 32px">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 72px">
+      <a href="settings-sheet.html" aria-label="声と環境音の設定" style="width: 60px; height: 60px; border-radius: 999px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.28); background: rgba(24,26,30,0.62); backdrop-filter: blur(10px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); color: #ffffff">
+        <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h12M20 17h0"></path><circle cx="15.5" cy="7" r="2"></circle><circle cx="8.5" cy="12" r="2"></circle><circle cx="17.5" cy="17" r="2"></circle></svg>
+      </a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 88px">
+      <button type="button" aria-label="停止" style="width: 88px; height: 88px; border-radius: 999px; display: flex; align-items: center; justify-content: center; border: 2px solid #7ee0b8; background: rgba(24,26,30,0.7); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); color: #ffffff; cursor: pointer; padding: 0">
+        <svg aria-hidden="true" width="34" height="34" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"></rect></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 72px">
+      <a href="#" aria-label="スリープタイマー" style="width: 60px; height: 60px; border-radius: 999px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.28); background: rgba(24,26,30,0.62); backdrop-filter: blur(10px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); color: #ffffff">
+        <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"></circle><path d="M12 9.5V13l2.5 1.5M10 2.5h4M12 2.5v3"></path></svg>
+      </a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>SOMNIOVOX トークンと部品</title>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;family=Shippori+Mincho:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#7ee0b8;text-decoration:none}a:hover{color:#a8ecd0}
+</style>
+
+<div style="width: 560px; height: 844px; box-sizing: border-box; padding: 32px; background: #202327; color: #f2f3f5; font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif; font-size: 13px; display: flex; flex-direction: column; gap: 28px; overflow: hidden">
+
+  <!-- 色 -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; color: #a9aeb6">色</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: #202327; border: 1px solid rgba(255,255,255,0.1)"></div><span style="font-size: 11px; color: #d7dadf">背景（イラスト中間調の想定）</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">#4a4f57</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: #24272c; border: 1px solid rgba(255,255,255,0.1)"></div><span style="font-size: 11px; color: #d7dadf">sheet</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">#24272c</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: #7ee0b8"></div><span style="font-size: 11px; color: #d7dadf">accent</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">#7ee0b8</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: rgba(126,224,184,0.22); border: 1px solid rgba(126,224,184,0.75)"></div><span style="font-size: 11px; color: #d7dadf">accent 選択面</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">22% / 線 75%</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: #ffffff"></div><span style="font-size: 11px; color: #d7dadf">text 強</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">#ffffff</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: #d7dadf"></div><span style="font-size: 11px; color: #d7dadf">text</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">#d7dadf</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: #a9aeb6"></div><span style="font-size: 11px; color: #d7dadf">text 弱（6.6:1）</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">#a9aeb6</span></div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 44px; border-radius: 10px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.16)"></div><span style="font-size: 11px; color: #d7dadf">非選択面</span><span style="font-size: 11px; color: #a9aeb6; font-family: ui-monospace, monospace">白 10% / 線 16%</span></div>
+    </div>
+  </section>
+
+  <!-- 文字 -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; color: #a9aeb6">文字</h2>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-family: 'Shippori Mincho', serif; font-size: 52px; line-height: 1.1; letter-spacing: 0.14em; color: #ffffff">ことば</span><span style="font-size: 11px; color: #a9aeb6; text-align: right">単語 — Shippori Mincho 400 / 52px / 字間 0.14em</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-family: 'Shippori Mincho', serif; font-size: 21px; line-height: 1.75; letter-spacing: 0.06em; color: #ffffff">セリフは明朝で、ゆっくり</span><span style="font-size: 11px; color: #a9aeb6; text-align: right">セリフ — Shippori Mincho / 21px / 行間 1.75</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 12px; font-weight: 500; letter-spacing: 0.22em; color: #d7dadf">SOMNIOVOX</span><span style="font-size: 11px; color: #a9aeb6; text-align: right">ワードマーク — Zen Kaku Gothic New 500 / 12px / 字間 0.22em</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 11px; font-weight: 500; letter-spacing: 0.2em; color: #a9aeb6">見出し</span><span style="font-size: 11px; color: #a9aeb6; text-align: right">セクション見出し — 11px / 字間 0.2em / text 弱</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px"><span style="font-size: 12px; color: #f2f3f5">ボタンの文字・名前</span><span style="font-size: 11px; color: #a9aeb6; text-align: right">本文 — 12px / 補助 11px / 最小 10px（話者スタイル名のみ）</span></div>
+    </div>
+  </section>
+
+  <!-- 部品 -->
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; color: #a9aeb6">部品と寸法</h2>
+    <div style="display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <div style="width: 88px; height: 88px; border-radius: 999px; border: 1px solid rgba(126,224,184,0.75); background: rgba(126,224,184,0.16); display: flex; align-items: center; justify-content: center; color: #ffffff"><svg aria-hidden="true" width="38" height="38" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" fill="currentColor"></path></svg></div>
+        <span style="font-size: 11px; color: #a9aeb6">主操作 88 / アイコン 34〜38</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <div style="width: 60px; height: 60px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.10)"></div>
+        <span style="font-size: 11px; color: #a9aeb6">副操作 60 / アイコン 26</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <div style="display: flex; padding: 3px; border-radius: 999px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.16)"><span style="height: 32px; padding: 0 18px; display: flex; align-items: center; border-radius: 999px; background: rgba(126,224,184,0.22); color: #7ee0b8; font-size: 12px; letter-spacing: 0.1em">選択</span><span style="height: 32px; padding: 0 18px; display: flex; align-items: center; color: #a9aeb6; font-size: 12px; letter-spacing: 0.1em">非選択</span></div>
+        <span style="font-size: 11px; color: #a9aeb6">モード切替 — 外 38 / 内 32</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <div style="position: relative; overflow: hidden; width: 100px; height: 64px; border-radius: 14px; border: 1px solid rgba(126,224,184,0.75); background: rgba(126,224,184,0.22)"><span style="position: absolute; left: 0; bottom: 0; height: 2px; width: 60%; background: #7ee0b8"></span></div>
+        <span style="font-size: 11px; color: #a9aeb6">環境音タイル 64 / 下線＝音量</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <div style="display: flex; gap: 4px"><span style="height: 28px; padding: 0 9px; display: flex; align-items: center; border-radius: 8px; background: rgba(126,224,184,0.28); color: #7ee0b8; font-size: 11px">選択</span><span style="height: 28px; padding: 0 9px; display: flex; align-items: center; border-radius: 8px; background: rgba(255,255,255,0.10); color: #a9aeb6; font-size: 11px">非選択</span></div>
+        <span style="font-size: 11px; color: #a9aeb6">チップ 28 / 角 8</span>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 11px; line-height: 1.7; color: #a9aeb6">角丸：タイル 14、ボタン 12、シート 28、円形は 999。余白は 4 の倍数、セクション間 28、要素間 8〜12。アイコンは線 1.6px の stroke SVG、サイズ 20〜22。ホームの操作はイラストの上に乗るので、面は黒 62%＋ぼかし、影 0 6px 18px 黒 45%。文字には影 0 1px 2px ＋ 0 2px 14px。</p>
+  </section>
+
+</div>
+</body>
+</html>
