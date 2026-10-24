@@ -1,6 +1,7 @@
 <!-- components/DustLayer.vue -->
 <!--
   キャラの前面にまばらに舞う、埃のような光の粒。
+  画面のどこにでもふっと現れ、ゆっくり漂って、そのまま消えていく。
 
   使い方（app.vue のメインコンテナ内、キャラ画像の後・UI の前に置く）:
     <DustLayer :enabled="dustEnabled" />
@@ -37,6 +38,10 @@ let resizeObserver = null
 
 const rand = (a, b) => a + Math.random() * (b - a)
 
+// 寿命のうち、現れる／消えるのに使う割合（両端それぞれ）。
+// 0.4 なら寿命の 4 割かけて現れ、中央で最大、残り 4 割かけて消える
+const FADE_RATIO = 0.4
+
 // ---- 発光スプライト（1回だけ作る） ----
 function makeSprite() {
   const size = 64
@@ -54,19 +59,22 @@ function makeSprite() {
 }
 
 // ---- 粒子 ----
-function spawn(p, anywhere = true) {
+// 湧き出し口は作らない。寿命が来た粒は画面のどこか別の場所に、
+// また 0 から立ち上がる（= ふっと現れて、ふっと消える）
+function spawn(p, stagger = false) {
   p.x = rand(0, w)
-  p.y = anywhere ? rand(0, h) : rand(h, h + 40)     // 下から湧く
-  p.vx = rand(-4, 4)          // px/s：ほぼ横に漂う
-  p.vy = rand(-9, -2)         // ゆっくり上へ（光の中の埃の動き）
+  p.y = rand(0, h)
+  p.vx = rand(-3, 3)          // px/s：ほとんど留まったまま、わずかに漂う
+  p.vy = rand(-3, 1)          // 上下もほぼ均等。ごくわずかに上寄り
   p.size = rand(3, 9)         // 見た目の直径（スプライトは拡縮）
   p.alpha = rand(0.25, 1)     // 個体差（maxAlpha に掛ける）
   p.wobbleAmp = rand(4, 14)
   p.wobbleSpd = rand(0.2, 0.6)
   p.twinkleSpd = rand(0.3, 1.2)
   p.phase = rand(0, Math.PI * 2)
-  p.life = 0
-  p.maxLife = rand(12, 28)    // 秒。寿命が来たらフェードアウトして湧き直す
+  p.maxLife = rand(10, 22)    // 秒。寿命の前後 FADE_RATIO を使って出入りする
+  // 初期配置だけは寿命の途中から始めて、全部が同時に明滅しないようにする
+  p.life = stagger ? rand(0, p.maxLife) : 0
   return p
 }
 
@@ -92,18 +100,22 @@ function frame(t) {
   for (const p of particles) {
     p.life += dt
     p.phase += dt
-    if (p.life > p.maxLife) spawn(p, false)
+    if (p.life > p.maxLife) spawn(p)
 
     p.x += (p.vx + Math.sin(p.phase * p.wobbleSpd) * p.wobbleAmp * 0.3) * dt
     p.y += p.vy * dt
-    if (p.y < -20) spawn(p, false)
+    // ほとんど動かないが、端に出た分は反対側へ回す
+    if (p.y < -20) p.y = h + 20
+    if (p.y > h + 20) p.y = -20
     if (p.x < -20) p.x = w + 20
     if (p.x > w + 20) p.x = -20
 
-    // 瞬き × 寿命の両端でフェード
-    const twinkle = 0.65 + 0.35 * Math.sin(p.phase * p.twinkleSpd * 2)
-    const edge = Math.min(1, p.life / 2, (p.maxLife - p.life) / 2)
-    const a = props.maxAlpha * p.alpha * twinkle * Math.max(0, edge)
+    // 瞬き × 寿命の両端でのゆっくりしたフェード
+    const twinkle = 0.8 + 0.2 * Math.sin(p.phase * p.twinkleSpd * 2)
+    const fade = p.maxLife * FADE_RATIO
+    const edge = Math.max(0, Math.min(1, p.life / fade, (p.maxLife - p.life) / fade))
+    const eased = edge * edge * (3 - 2 * edge)   // smoothstep：出入りの角を取る
+    const a = props.maxAlpha * p.alpha * twinkle * eased
     if (a <= 0.01) continue
 
     const d = p.size * 4   // スプライトは中心が明るいので、見た目の直径の約4倍で描く

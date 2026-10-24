@@ -66,7 +66,7 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
         <div
           ref="scrollRef"
           class="flex flex-col"
-          style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:4px 24px 32px; gap:28px"
+          style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:4px 24px calc(32px + env(safe-area-inset-bottom)); gap:28px"
         >
           <!-- 声 -->
           <section class="flex flex-col" style="gap:12px">
@@ -234,7 +234,8 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
   align-items: center;
   column-gap: 12px;
   row-gap: 10px;
-  padding-top: 4px;
+  /* 環境音がオンのときはここがシートの最下段になるので、下に余白を足す */
+  padding: 4px 0 20px;
 }
 
 .chip {
