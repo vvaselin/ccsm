@@ -49,7 +49,7 @@ defineEmits(['toggle', 'toggleTimer', 'toggleSettings'])
         class="float-button"
         style="width:60px; height:60px"
         :style="timerActive
-          ? { border: '1px solid rgba(126,224,184,0.9)', color: 'var(--sv-accent)' }
+          ? { border: '1px solid var(--sv-accent)', color: 'var(--sv-accent)' }
           : { border: '1px solid rgba(255,255,255,0.28)', color: 'var(--sv-text-strong)' }"
         @click="$emit('toggleTimer')"
       >
@@ -78,6 +78,6 @@ defineEmits(['toggle', 'toggleTimer', 'toggleSettings'])
   -webkit-backdrop-filter: blur(10px);
   box-shadow: var(--sv-float-shadow);
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.2s, color 0.2s;
+  transition: scale 0.15s, border-color 0.2s, color 0.2s;  /* active:scale-95 は scale プロパティ */
 }
 </style>

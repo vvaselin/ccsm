@@ -10,8 +10,10 @@ export function useAudioPlayer() {
   let currentSource = null
   let progressTimer = null
   let panSide       = 1
+  let generation    = 0   // stopAudio() のたびに進める（読み込み中に止められた音を鳴らさないため）
 
   async function playAudio(audioUrl, panValue = 0) {
+    const gen = generation
     const ctx = getCtx()
     if (ctx.state === 'suspended') await ctx.resume()
 
@@ -19,6 +21,7 @@ export function useAudioPlayer() {
     if (!res.ok) throw new Error(`音声の取得に失敗: ${audioUrl}`)
     const arrayBuf = await res.arrayBuffer()
     const buffer   = await ctx.decodeAudioData(arrayBuf)
+    if (gen !== generation) return 0   // 読み込み中に停止・モード切替された
 
     return new Promise((resolve) => {
       if (currentSource) {
@@ -65,6 +68,7 @@ export function useAudioPlayer() {
   }
 
   function stopAudio() {
+    generation++
     if (currentSource) {
       currentSource.onended = null
       try { currentSource.stop() } catch {}

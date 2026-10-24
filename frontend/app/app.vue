@@ -183,8 +183,8 @@ onUnmounted(() => {
   </Head>
   <div class="min-h-screen flex items-center justify-center" style="overflow:hidden; position:fixed; width:100%; height:100%; background:var(--sv-ground-3)">
     <div
-      class="relative w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden; color:var(--sv-text); background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
+      class="stage relative w-full"
+      style="max-width:390px; max-height:844px; overflow:hidden; color:var(--sv-text); background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
     >
       <!-- キャラクター（腰から上）。コンテナ幅を基準に置き、object-fit は使わない
            （目の位置が端末で変わらないように。縦長の端末では下の余白が増えるだけ） -->
@@ -277,8 +277,9 @@ onUnmounted(() => {
         class="flex flex-col items-center text-center"
         style="position:absolute; left:0; right:0; top:118px; gap:8px; padding:0 12px"
       >
-        <p style="font-size:12px; letter-spacing:0.18em; color:var(--sv-on-image); text-shadow:0 1px 2px rgba(0,0,0,0.6)">
-          {{ phaseLabel }}&nbsp;
+        <!-- 空のときも行の高さを保つ（&nbsp; だと中央からずれるので min-height で） -->
+        <p style="min-height:18px; font-size:12px; letter-spacing:0.18em; color:var(--sv-on-image); text-shadow:0 1px 2px rgba(0,0,0,0.6)">
+          {{ phaseLabel }}
         </p>
 
         <div class="relative w-full" style="height:57px">
@@ -361,6 +362,12 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* 中身は全部絶対配置なので、高さはここだけで決まる（dvh 非対応のブラウザでは vh を使う） */
+.stage {
+  height: 100vh;
+  height: 100dvh;
+}
+
 .character-background {
   position: absolute;
   top: 0;
@@ -409,6 +416,7 @@ onUnmounted(() => {
   font-size: 21px;
   line-height: 1.75;
   letter-spacing: 0.06em;
+  text-wrap: balance;   /* 2行になるとき、1文字だけ次の行に残らないように */
   color: var(--sv-text-strong);
   text-shadow: var(--sv-text-shadow);
 }

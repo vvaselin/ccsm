@@ -46,6 +46,7 @@ export function useSleepTimer(onExpire) {
       const remain = timerEndTime - Date.now()
       if (remain <= 0) {
         timerRemainMs.value = 0
+        timerOption.value   = null   // 動作中の表示（差し色・残り時間）を消す
         clearInterval(timerTick)
         timerTick = null
         onExpire?.()

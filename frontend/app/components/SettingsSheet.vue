@@ -19,7 +19,7 @@ const emit = defineEmits(['close', 'selectSpeaker', 'selectDistance', 'toggleAmb
 const { dragY, isDragging, scrollRef, handlers: dragHandlers } = useSheetDrag(() => emit('close'))
 
 // 長い名前は「＿」の後ろでだけ折り返す（「ナースロボ＿ / タイプＴ」）。ボタン側は word-break: keep-all
-const breakName = name => name.replace('＿', '＿​')
+const breakName = name => name.replace('＿', '＿\u200B')
 
 // 声の距離のアイコン：耳と、声までの弧の数
 const DISTANCE_ICONS = {
@@ -166,6 +166,7 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
                   :aria-label="`${sound.label}の音量`"
                   class="volume"
                   :style="{ '--fill': volumePercent(sound.id), 'gridColumn': sound.variants ? 'auto' : 'span 2' }"
+                  @touchstart.stop
                   @input="$emit('setAmbientVolume', sound.id, Number($event.target.value))"
                 />
                 <!-- 強さの切り替え（雨など variants を持つ音だけ） -->
