@@ -27,9 +27,10 @@ export const AMBIENT_SOUNDS = [
       { id: 'heavy',  label: '強い', src: '/ambient/rain_heavy.mp3',  gain: 1.0 },
     ],
   },
-  // level は耳で合わせる前提の仮値
-  { id: 'fire',     label: '焚き火',       icon: 'i-lucide-flame',          kind: 'file', level: 0.18, src: '/ambient/fire.mp3' },
-  { id: 'river',    label: '川',           icon: 'i-lucide-waves',          kind: 'file', level: 0.18, src: '/ambient/river.mp3' },
+  // 音源は -23 LUFS モノラル（両耳に同じ音が出るので再生時は -20 LUFS）。
+  // 雨（普通、-36.6 LUFS）と同じスライダー位置で同じ音量感になるよう 0.18 × 10^(-16.6/20) にしてある
+  { id: 'fire',     label: '焚き火',       icon: 'i-lucide-flame',          kind: 'file', level: 0.027, src: '/ambient/fire.mp3' },
+  { id: 'river',    label: '川',           icon: 'i-lucide-waves',          kind: 'file', level: 0.027, src: '/ambient/river.mp3' },
   { id: 'pink',     label: 'ピンク',      icon: 'i-lucide-audio-waveform', kind: 'synth' },
   { id: 'brown',    label: 'ブラウン',     icon: 'i-lucide-activity',       kind: 'synth' },
   { id: 'binaural', label: 'バイノーラル', icon: 'i-lucide-headphones',     kind: 'synth' },
