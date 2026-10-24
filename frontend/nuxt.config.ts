@@ -34,6 +34,15 @@ export default defineNuxtConfig({
   icon: {
     clientBundle: {
       scan: true,
+      // 環境音のアイコンは composables（.js）にあり走査されないので明示する
+      icons: [
+        'lucide:cloud-rain',
+        'lucide:flame',
+        'lucide:waves',
+        'lucide:audio-waveform',
+        'lucide:activity',
+        'lucide:headphones',
+      ],
     },
   },
 

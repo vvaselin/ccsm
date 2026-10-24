@@ -7,6 +7,7 @@ import { useWordLoop }     from '~/composables/useWordLoop'
 import { useSpeaker }      from '~/composables/useSpeaker'
 import { useAmbientSound } from '~/composables/useAmbientSound'
 import { useMode, MODES }  from '~/composables/useMode'
+import { useVoiceDistance } from '~/composables/useVoiceDistance'
 import {
   unlock as unlockAudio,
   setPlaying as setEnginePlaying,
@@ -35,6 +36,8 @@ const {
 const { selectedSpeaker, selectSpeaker } = useSpeaker()
 
 const { mode, setMode } = useMode()
+
+const { voiceDistance, setVoiceDistance } = useVoiceDistance()
 
 const {
   states:         ambientStates,
@@ -308,9 +311,11 @@ onUnmounted(() => {
       <SettingsSheet
         :show="showSettingsMenu"
         :selected-speaker="selectedSpeaker"
+        :voice-distance="voiceDistance"
         :ambient-states="ambientStates"
         @close="showSettingsMenu = false"
         @select-speaker="selectSpeaker"
+        @select-distance="setVoiceDistance"
         @toggle-ambient="toggleAmbient"
         @set-ambient-volume="setAmbientVolume"
         @set-ambient-variant="setAmbientVariant"

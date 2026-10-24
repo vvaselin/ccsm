@@ -8,17 +8,16 @@ import { getCtx as getEngineCtx, getMaster, audioWait } from '~/composables/useA
 import { loadSettings, saveSettings } from '~/composables/useSettings'
 
 // ピンクノイズに合わせた音量上限（小さめ）
-const MAX_VOLUME = 0.5
+export const MAX_VOLUME = 0.5
 
 // ファイル音源の継ぎ目処理
 const LOOP_TRIM_SEC  = 0.03   // mp3 のエンコード無音を避けるため前後を少し削る
 const FILE_FADE_SEC  = 0.6    // 開始・停止・切り替え時のフェード
 
+// 並び順は設定シートのタイルの順（icon は lucide のクラス名）
 export const AMBIENT_SOUNDS = [
-  { id: 'pink',     label: 'ピンクノイズ',  icon: '~', kind: 'synth' },
-  { id: 'brown',    label: 'ブラウンノイズ', icon: '=', kind: 'synth' },
   {
-    id: 'rain', label: '雨音', icon: '*', kind: 'file',
+    id: 'rain', label: '雨', icon: 'i-lucide-cloud-rain', kind: 'file',
     // level: 合成ノイズ（かなり小さい）と音量感を揃えるための係数。耳で調整する
     level: 0.18,
     defaultVariant: 'normal',
@@ -28,7 +27,9 @@ export const AMBIENT_SOUNDS = [
       { id: 'heavy',  label: '強い', src: '/ambient/rain_heavy.mp3',  gain: 1.0 },
     ],
   },
-  { id: 'binaural', label: 'バイノーラル',   icon: 'o', kind: 'synth' },
+  { id: 'pink',     label: 'ピンク',       icon: 'i-lucide-audio-waveform', kind: 'synth' },
+  { id: 'brown',    label: 'ブラウン',     icon: 'i-lucide-activity',       kind: 'synth' },
+  { id: 'binaural', label: 'バイノーラル', icon: 'i-lucide-headphones',     kind: 'synth' },
 ]
 
 const SOUND_BY_ID = Object.fromEntries(AMBIENT_SOUNDS.map(s => [s.id, s]))

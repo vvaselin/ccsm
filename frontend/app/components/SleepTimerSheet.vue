@@ -19,17 +19,18 @@ const { dragY, isDragging, handlers: dragHandlers } = useSheetDrag(() => emit('c
     <div
       v-if="show"
       class="absolute inset-0 flex items-end z-50"
-      style="background:rgba(10,12,15,0.3); backdrop-filter:blur(2px)"
+      style="background:rgba(10,11,13,0.55)"
       @click.self="$emit('close')"
     >
       <div
         class="w-full"
         v-bind="dragHandlers"
         :style="{
-          background: '#1a1f2a',
-          borderTop: '1px solid rgba(126,184,201,0.12)',
-          borderRadius: '24px 24px 0 0',
-          padding: '14px 24px 48px',
+          background: 'var(--sv-sheet)',
+          borderTop: '1px solid rgba(126,224,184,0.22)',
+          borderRadius: '28px 28px 0 0',
+          boxShadow: '0 -12px 40px rgba(0,0,0,0.45)',
+          padding: '0 24px 40px',
           touchAction: 'none',
           transform: `translateY(${dragY}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',
@@ -37,35 +38,41 @@ const { dragY, isDragging, handlers: dragHandlers } = useSheetDrag(() => emit('c
         }"
       >
         <!-- ハンドル（当たり判定はシート全体） -->
-        <div
-          class="rounded-full mx-auto"
-          style="width:36px; height:4px; background:rgba(255,255,255,0.18); margin-bottom:24px"
-        />
+        <div class="flex items-center justify-center" style="height:32px">
+          <div style="width:36px; height:4px; border-radius:999px; background:rgba(255,255,255,0.3)" />
+        </div>
 
-        <p class="text-xs tracking-widest uppercase text-center" style="color:#5a6070; margin-bottom:20px">
+        <h2
+          class="text-center"
+          style="margin:4px 0 16px; font-size:11px; font-weight:500; letter-spacing:0.2em; color:var(--sv-text-weak)"
+        >
           スリープタイマー
-        </p>
+        </h2>
 
         <!-- 選択肢 -->
         <div class="grid grid-cols-2" style="gap:8px; margin-bottom:16px">
           <button
             v-for="opt in TIMER_OPTIONS"
             :key="opt.ms"
+            type="button"
+            :aria-pressed="timerOption?.ms === opt.ms"
+            class="option"
+            :class="{ 'is-on': timerOption?.ms === opt.ms }"
             @click="$emit('select', opt)"
-            class="rounded-xl text-sm font-medium transition-colors"
-            style="padding:12px"
-            :style="timerOption?.ms === opt.ms
-              ? 'background:rgba(232,234,240,0.9); color:#0d0f12'
-              : 'background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(232,234,240,0.6)'"
-          >{{ opt.label }}</button>
+          >
+            {{ opt.label }}
+          </button>
         </div>
 
         <!-- オフ -->
         <button
+          type="button"
+          class="w-full"
+          style="padding-top:16px; border-top:1px solid var(--sv-surface); color:var(--sv-text-weak); font-size:12px; cursor:pointer"
           @click="$emit('clear')"
-          class="w-full text-xs transition-colors"
-          style="padding-top:16px; border-top:1px solid rgba(255,255,255,0.07); color:#5a6070"
-        >オフ</button>
+        >
+          オフ
+        </button>
       </div>
     </div>
   </Transition>
@@ -76,4 +83,22 @@ const { dragY, isDragging, handlers: dragHandlers } = useSheetDrag(() => emit('c
 .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from,
 .fade-leave-to     { opacity: 0; }
+
+/* 選択中だけ差し色（設定シートのタイルと同じ） */
+.option {
+  height: 48px;
+  border: 1px solid var(--sv-surface-line);
+  border-radius: 12px;
+  background: var(--sv-surface);
+  color: var(--sv-text-sub);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.option.is-on {
+  border-color: var(--sv-accent-line);
+  background: var(--sv-accent-surface);
+  color: var(--sv-accent);
+}
 </style>
