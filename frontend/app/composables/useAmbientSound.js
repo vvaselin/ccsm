@@ -11,7 +11,7 @@ import { loadSettings, saveSettings } from '~/composables/useSettings'
 export const MAX_VOLUME = 0.5
 
 // ファイル音源の継ぎ目処理
-const LOOP_TRIM_SEC  = 0.03   // mp3 のエンコード無音を避けるため前後を少し削る
+const LOOP_TRIM_SEC  = 0      // ループ素材の継ぎ目に穴を開けないよう削らない（mp3 の先頭・末尾の無音はデコーダーが除去する）
 const FILE_FADE_SEC  = 0.6    // 開始・停止・切り替え時のフェード
 
 // 並び順は設定シートのタイルの順（icon は lucide のクラス名）
@@ -27,7 +27,10 @@ export const AMBIENT_SOUNDS = [
       { id: 'heavy',  label: '強い', src: '/ambient/rain_heavy.mp3',  gain: 1.0 },
     ],
   },
-  { id: 'pink',     label: 'ピンク',       icon: 'i-lucide-audio-waveform', kind: 'synth' },
+  // level は耳で合わせる前提の仮値
+  { id: 'fire',     label: '焚き火',       icon: 'i-lucide-flame',          kind: 'file', level: 0.18, src: '/ambient/fire.mp3' },
+  { id: 'river',    label: '川',           icon: 'i-lucide-waves',          kind: 'file', level: 0.18, src: '/ambient/river.mp3' },
+  { id: 'pink',     label: 'ピンク',      icon: 'i-lucide-audio-waveform', kind: 'synth' },
   { id: 'brown',    label: 'ブラウン',     icon: 'i-lucide-activity',       kind: 'synth' },
   { id: 'binaural', label: 'バイノーラル', icon: 'i-lucide-headphones',     kind: 'synth' },
 ]
@@ -131,8 +134,8 @@ export function useAmbientSound() {
   }
 
   // ---- ファイル音源：AudioBuffer をループ再生 ----
-  // <audio loop> だと mp3 の先頭・末尾の無音で継ぎ目が切れるので、
-  // loopStart / loopEnd で少し内側をループさせる
+  // <audio loop> だと継ぎ目で途切れるので、AudioBuffer をサンプル単位でループさせる。
+  // 削る必要がある素材のために loopStart / loopEnd を LOOP_TRIM_SEC だけ内側にできる
   function startBufferLoop(ctx, gain, buffer, level) {
     const src = ctx.createBufferSource()
     src.buffer    = buffer
@@ -217,8 +220,11 @@ export function useAmbientSound() {
     nodes[id] = entry
 
     if (sound.kind === 'file') {
-      // 非同期で読み込む。読み込み中に止められたら entry が差し替わっているので捨てる
-      const variant = sound.variants.find(v => v.id === states[id].variant) ?? sound.variants[0]
+      // 非同期で読み込む。読み込み中に止められたら entry が差し替わっているので捨てる。
+      // variants の無い音（焚き火・川）は src をそのまま使う
+      const variant = sound.variants?.find(v => v.id === states[id].variant)
+        ?? sound.variants?.[0]
+        ?? { src: sound.src, gain: 1 }
       loadBuffer(ctx, variant.src)
         .then((buffer) => {
           if (nodes[id] !== entry) return

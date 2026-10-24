@@ -3,6 +3,7 @@
 
 import { ref, onMounted } from 'vue'
 import { loadSettings, saveSettings } from '~/composables/useSettings'
+import { setVoiceDistance as applyToVoiceBus } from '~/composables/useAudioEngine'
 
 export const VOICE_DISTANCES = [
   { id: 'ear',  label: '耳元' },
@@ -18,12 +19,16 @@ export function useVoiceDistance() {
   // プリレンダーと食い違わないよう、復元はマウント後に行う
   onMounted(() => {
     const saved = loadSettings().voiceDistance
-    if (VOICE_DISTANCES.some(d => d.id === saved)) voiceDistance.value = saved
+    if (VOICE_DISTANCES.some(d => d.id === saved)) {
+      voiceDistance.value = saved
+      applyToVoiceBus(saved)
+    }
   })
 
   function setVoiceDistance(id) {
     voiceDistance.value = id
     saveSettings({ voiceDistance: id })
+    applyToVoiceBus(id)
   }
 
   return {

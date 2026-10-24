@@ -26,9 +26,10 @@ const MIN_H        = 4       // 停止中の平らな線（px）
 const MAX_H        = 64
 const FPS          = 30
 
-// 周波数ビンを左右 22 本ずつに間引く範囲。声の帯域を対数で分ける
-const FREQ_LO = 150
-const FREQ_HI = 5000
+// 周波数ビンを左右 22 本ずつに間引く範囲。声（ささやき声）の帯域を対数で分ける
+const FREQ_LO = 250
+const FREQ_HI = 6000
+const EDGE_TAPER = 0.6   // 外側ほど低くして、中央が盛り上がる形にする（端は 1 - 0.6 倍）
 
 const CENTER = (BAR_COUNT - 1) / 2
 const bars = Array.from({ length: BAR_COUNT }, (_, i) => ({
@@ -84,10 +85,10 @@ function frame(t) {
   lastT = t - (elapsed % interval)
 
   props.analyser.getByteFrequencyData(data)
-  const levels = bandBins.map(([lo, hi]) => {
+  const levels = bandBins.map(([lo, hi], b) => {
     let peak = 0
     for (let k = lo; k < hi; k++) peak = Math.max(peak, data[k])
-    return peak / 255
+    return (peak / 255) * (1 - EDGE_TAPER * (b / (HALF - 1)) ** 2)
   })
   setHeights(i => MIN_H + levels[bandOf(i)] * (MAX_H - MIN_H))
 }

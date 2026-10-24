@@ -1,10 +1,8 @@
 // composables/useAudioPlayer.js
-// 単語・セリフ音声の再生と進捗バー管理（出力は useAudioEngine 経由）
+// 単語・セリフ音声の再生と進捗バー管理（出力は useAudioEngine の声のバス）
 
 import { ref } from 'vue'
-import { getCtx, getMaster, audioWait } from '~/composables/useAudioEngine'
-
-const PAN_STRENGTH = 0.8
+import { getCtx, getVoiceBus, getVoicePanWidth, audioWait } from '~/composables/useAudioEngine'
 
 export function useAudioPlayer() {
   const progress = ref(0)
@@ -32,7 +30,7 @@ export function useAudioPlayer() {
       panner.pan.value = panValue
       source.buffer = buffer
       source.connect(panner)
-      panner.connect(getMaster())
+      panner.connect(getVoiceBus().input)
       source.onended = () => resolve(buffer.duration)
       source.start()
       currentSource = source
@@ -54,8 +52,9 @@ export function useAudioPlayer() {
     progress.value = 0
   }
 
+  // 単語用：左右交互に振る。振り幅は声の距離で変わる
   async function playNext(audioUrl) {
-    const duration = await playAudio(audioUrl, panSide * PAN_STRENGTH)
+    const duration = await playAudio(audioUrl, panSide * getVoicePanWidth())
     panSide *= -1
     return duration
   }

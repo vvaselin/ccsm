@@ -2,7 +2,9 @@
 // アプリ全体で共有する AudioContext と、バックグラウンド再生のための配管
 //
 // 配線:
-//   全ての音 → master(Gain) → ctx.destination（通常の Web Audio 出力）
+//   声（単語・セリフ）→ 声のバス（距離感・波形用の Analyser）→ master
+//   環境音            → master
+//   master(Gain) → ctx.destination（通常の Web Audio 出力）
 //   それとは別に、<audio> 要素で /keepalive.mp3（10秒・ほぼ無音）をループ再生する
 //
 // なぜこうするか:
@@ -16,6 +18,8 @@
 //   - unlock()      : 再生ボタンのタップ処理の中で「同期的に」最初に呼ぶ
 //   - getCtx()      : AudioContext を取得（各 composable はこれだけを使う）
 //   - getMaster()   : 出力先。ctx.destination の代わりにここへ connect する
+//   - getVoiceBus() : 声の出力先 { input, analyser, setDistance(d) }。声は master ではなくここへ
+//   - setVoiceDistance(d) / getVoicePanWidth() : 声の距離の切り替えと、単語を左右に振る幅
 //   - audioWait(ms) : setTimeout の代わり。音声クロックで待つので
 //                     バックグラウンドでも間引かれない
 //   - setPlaying(b) : <audio> 要素の再生/停止と MediaSession の状態を切り替える
@@ -52,6 +56,96 @@ export function getCtx() {
 export function getMaster() {
   getCtx()
   return master
+}
+
+// ---- 声のバス ----
+//
+//   source → panner → input ─┬─ lowpass ─┬────────────────────→ output → master
+//                            │           └─ convolver ─ wetGain ┘
+//                            └─ analyser（波形用。出力はどこにも繋がない）
+//
+// 声の距離ごとの値。音量（ゲイン）は変えず、こもり具合・左右の振り幅・残響で距離感を出す
+const VOICE_DISTANCE_PARAMS = {
+  ear:  { lowpass: 3500,  pan: 0.8, wet: 0 },
+  near: { lowpass: 8000,  pan: 0.5, wet: 0.12 },
+  far:  { lowpass: 18000, pan: 0.2, wet: 0.3 },
+}
+const DISTANCE_RAMP_SEC = 0.4   // 距離を切り替えたとき、この時間をかけて滑らかに変える
+
+let voiceBus = null
+let voiceDistance = 'ear'
+
+// 残響のインパルス応答。ファイルは使わず、ステレオの白色ノイズを指数減衰させて作る
+function makeImpulseResponse(c, seconds = 1.6, decay = 3.5) {
+  const len = Math.floor(c.sampleRate * seconds)
+  const buf = c.createBuffer(2, len, c.sampleRate)
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch)
+    for (let i = 0; i < len; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-(i / c.sampleRate) * decay)
+    }
+  }
+  return buf
+}
+
+// 声（単語・セリフ・朗読）の入口。初回呼び出し時に作る
+export function getVoiceBus() {
+  if (voiceBus) return voiceBus
+  const c = getCtx()
+  const p = VOICE_DISTANCE_PARAMS[voiceDistance]
+
+  const input = c.createGain()
+
+  const lowpass = c.createBiquadFilter()
+  lowpass.type            = 'lowpass'
+  lowpass.frequency.value = p.lowpass
+
+  const convolver = c.createConvolver()
+  convolver.buffer = makeImpulseResponse(c)
+
+  const wetGain = c.createGain()
+  wetGain.gain.value = p.wet
+
+  const output = c.createGain()
+
+  const analyser = c.createAnalyser()
+  analyser.fftSize               = 512
+  analyser.smoothingTimeConstant = 0.7
+
+  input.connect(lowpass)
+  lowpass.connect(output)
+  lowpass.connect(convolver)
+  convolver.connect(wetGain)
+  wetGain.connect(output)
+  output.connect(master)
+  input.connect(analyser)
+
+  function setDistance(d) {
+    const q = VOICE_DISTANCE_PARAMS[d]
+    if (!q) return
+    voiceDistance = d
+    // setTargetAtTime は時定数の約 3 倍でほぼ目標に届く
+    const now = c.currentTime
+    const tc  = DISTANCE_RAMP_SEC / 3
+    lowpass.frequency.setTargetAtTime(q.lowpass, now, tc)
+    wetGain.gain.setTargetAtTime(q.wet, now, tc)
+  }
+
+  voiceBus = { input, analyser, setDistance }
+  return voiceBus
+}
+
+// 声の距離を切り替える。バスがまだ無ければ値だけ覚えておき、作るときに使う
+// （保存値の復元はタップ前に走るので、ここでは AudioContext を作らない）
+export function setVoiceDistance(d) {
+  if (!VOICE_DISTANCE_PARAMS[d]) return
+  if (voiceBus) voiceBus.setDistance(d)
+  else voiceDistance = d
+}
+
+// 単語を左右に振る幅（声の距離で変わる）
+export function getVoicePanWidth() {
+  return VOICE_DISTANCE_PARAMS[voiceDistance].pan
 }
 
 // ユーザー操作（タップ）の同期処理内で呼ぶこと。

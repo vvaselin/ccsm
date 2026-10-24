@@ -1,6 +1,6 @@
 <!-- app.vue -->
 <script setup>
-import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
+import { ref, shallowRef, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAudioPlayer }  from '~/composables/useAudioPlayer'
 import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
@@ -13,6 +13,7 @@ import {
   setPlaying as setEnginePlaying,
   setupMediaSession,
   updateMediaMetadata,
+  getVoiceBus,
 } from '~/composables/useAudioEngine'
 
 const {
@@ -77,10 +78,14 @@ async function stopWithPhrase() {
   setEnginePlaying(false)
 }
 
+// 波形に渡す声のバスの Analyser（AudioContext はタップ後に作るので、それまでは null）
+const voiceAnalyser = shallowRef(null)
+
 // ユーザーのタップから同期的に呼ばれる必要がある（unlockAudio のため）
 function start() {
   if (isPlaying.value) return
   unlockAudio()
+  voiceAnalyser.value = getVoiceBus().analyser
   setEnginePlaying(true)
   startAmbient()
   _start()
@@ -278,6 +283,7 @@ onUnmounted(() => {
       <!-- おはなし：セリフも話者名も出さず、声の波形だけ -->
       <VoiceWaveform
         v-else
+        :analyser="voiceAnalyser"
         :active="isPlaying"
         style="position:absolute; left:0; right:0; top:122px"
       />
