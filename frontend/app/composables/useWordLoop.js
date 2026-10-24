@@ -99,10 +99,10 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
       resetProgress()
 
       await playPhraseAudio(phraseAudioUrl(text, speakerId.value))
-      
+
       // 待機中にループが無効化されていないかチェック
       if (loopId !== currentLoopId) return
-      
+
       await wait(PHRASE_PAUSE_MS)   // 音声クロックで待つ（背面でも間引かれない）
     } catch {
       // セリフ再生失敗は無視してループ継続
@@ -163,10 +163,10 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
       }
 
       if (loopId !== currentLoopId) break
-      
+
       // ランダムな待機時間を取得（8秒～13秒）
       const pauseTime = getRandomPauseTime()
-      
+
       phase.value = 'pause'
       resetProgress()
       startProgress(pauseTime)
@@ -190,23 +190,23 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
   async function start() {
     // 既に再生中の場合は何もしない
     if (isPlaying.value) return
-    
+
     // 新しいループIDを発行（古いループを無効化）
     const loopId = ++currentLoopId
-    
+
     stopAudio()
     isPlaying.value = true
     prev        = null
     wordCount   = 0
     nextRelaxAt = _nextRelaxCount()
-    
+
     await loop(loopId)
   }
 
   async function stop(stopPlayerAudio = true) {
     // 現在のループを無効化
     currentLoopId++
-    
+
     isPlaying.value = false
     prev            = null
     if (stopPlayerAudio) stopAudio()

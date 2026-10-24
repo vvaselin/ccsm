@@ -30,6 +30,21 @@ export default defineNuxtConfig({
     fonts: false,
   },
 
+  routeRules: {
+    '/': { prerender: true }
+  },
+
+  compatibilityDate: '2025-01-15',
+
+  eslint: {
+    config: {
+      stylistic: {
+        commaDangle: 'only-multiline',
+        braceStyle: '1tbs'
+      }
+    }
+  },
+
   // アイコンをクライアントの JS に同梱する（静的配信・オフラインでも API なしで表示できるように）
   icon: {
     clientBundle: {
@@ -44,21 +59,6 @@ export default defineNuxtConfig({
         'lucide:headphones',
       ],
     },
-  },
-
-  routeRules: {
-    '/': { prerender: true }
-  },
-
-  compatibilityDate: '2025-01-15',
-
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
-    }
   },
 
   pwa: {
