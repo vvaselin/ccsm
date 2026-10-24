@@ -1,20 +1,24 @@
 <!-- app.vue -->
 <script setup>
-import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
+import { ref, shallowRef, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAudioPlayer }  from '~/composables/useAudioPlayer'
 import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
+import { useStoryLoop }    from '~/composables/useStoryLoop'
 import { useSpeaker }      from '~/composables/useSpeaker'
 import { useAmbientSound } from '~/composables/useAmbientSound'
+import { useMode, MODES }  from '~/composables/useMode'
+import { useVoiceDistance } from '~/composables/useVoiceDistance'
 import {
   unlock as unlockAudio,
   setPlaying as setEnginePlaying,
   setupMediaSession,
   updateMediaMetadata,
+  getVoiceBus,
 } from '~/composables/useAudioEngine'
 
 const {
-  progress,
+  progress: wordProgress,
   playNext,
   playPhrase,
   stopAudio: stopPlayerAudio,
@@ -33,6 +37,10 @@ const {
 
 const { selectedSpeaker, selectSpeaker } = useSpeaker()
 
+const { mode, setMode } = useMode()
+
+const { voiceDistance, setVoiceDistance } = useVoiceDistance()
+
 const {
   states:         ambientStates,
   toggle:         toggleAmbient,
@@ -47,7 +55,7 @@ const {
 const {
   word,
   phrase,
-  isPlaying,
+  isPlaying:         wordPlaying,
   phase,
   phaseLabel,
   stop:              _stop,
@@ -58,26 +66,54 @@ const {
   { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio, wait }
 )
 
+const {
+  isPlaying: storyPlaying,
+  progress:  storyProgress,
+  start:     startStory,
+  stop:      stopStory,
+} = useStoryLoop()
+
+// モードによって使うループを切り替える（どちらも公開 API は同じ形）。
+// 環境音・タイマー・MediaSession・バックグラウンド再生の仕組みは両モード共通
+const isStory   = computed(() => mode.value === 'story')
+const isPlaying = computed(() => isStory.value ? storyPlaying.value : wordPlaying.value)
+const progress  = computed(() => isStory.value ? storyProgress.value : wordProgress.value)
+
 async function stop() {
-  await _stop()
+  if (isStory.value) await stopStory()
+  else await _stop()
   stopAmbient()
   setEnginePlaying(false)
 }
 
 async function stopWithPhrase() {
-  await _stop(true)
-  await playPhraseByType('stop')
+  if (isStory.value) {
+    await stopStory()
+  } else {
+    await _stop(true)
+    await playPhraseByType('stop')
+  }
   await fadeOutAudio(0, 3000)
   setEnginePlaying(false)
 }
+
+// 波形に渡す声のバスの Analyser（AudioContext はタップ後に作るので、それまでは null）
+const voiceAnalyser = shallowRef(null)
 
 // ユーザーのタップから同期的に呼ばれる必要がある（unlockAudio のため）
 function start() {
   if (isPlaying.value) return
   unlockAudio()
+  voiceAnalyser.value = getVoiceBus().analyser
+  if (isStory.value) startStory()
+  else _start()
+  // おはなしはまだ再生の中身が無く、再生状態にならない。そのときは何も鳴らさない
+  if (!isPlaying.value) {
+    setEnginePlaying(false)
+    return
+  }
   setEnginePlaying(true)
   startAmbient()
-  _start()
 }
 
 const toggle = () => {
@@ -87,6 +123,16 @@ const toggle = () => {
     start()
   }
 }
+
+// 再生中に切り替えたら、いったん止めてから切り替える
+async function selectMode(id) {
+  if (id === mode.value) return
+  if (isPlaying.value) await stop()
+  setMode(id)
+}
+
+// 単語は 52px。長い単語（7文字〜）だけ、画面幅に収まるよう縮める
+const wordLength = computed(() => [...word.value].length)
 
 // ロック画面・通知・イヤホンのボタン
 onMounted(() => {
@@ -135,12 +181,13 @@ onUnmounted(() => {
     <Meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <Link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </Head>
-  <div class="min-h-screen flex items-center justify-center bg-animated" style="overflow:hidden; position:fixed; width:100%; height:100%">
+  <div class="min-h-screen flex items-center justify-center" style="overflow:hidden; position:fixed; width:100%; height:100%; background:var(--sv-ground-3)">
     <div
-      class="relative flex flex-col justify-between w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden"
+      class="stage relative w-full"
+      style="max-width:390px; max-height:844px; overflow:hidden; color:var(--sv-text); background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
     >
-      <!-- 背景キャラクター画像（全体表示） -->
+      <!-- キャラクター（腰から上）。コンテナ幅を基準に置き、object-fit は使わない
+           （目の位置が端末で変わらないように。縦長の端末では下の余白が増えるだけ） -->
       <Transition name="fade-character">
         <div
           v-if="selectedSpeaker?.id === 50"
@@ -148,58 +195,100 @@ onUnmounted(() => {
           class="character-background"
         >
           <img
-            src="/TT.webp"
-            alt="ナースロボ＿タイプＴ"
-            style="position:absolute; top:50px; left:0; width:100%; height:100%; object-fit:cover; object-position:center; pointer-events:none"
+            src="/characters/nurse_robo.webp"
+            alt=""
+            aria-hidden="true"
+            style="position:absolute; width:110.5%; left:-4.9%; top:116px; height:auto; max-width:none; pointer-events:none; user-select:none"
           />
-          <div style="position:absolute; 
-                      top:0; 
-                      left:0; 
-                      width:100%; 
-                      height:100%; 
-                      background:linear-gradient(to bottom, rgba(13,15,24,0.85) 0%, rgba(13,15,24,0.3) 25%, rgba(13,15,24,0.3) 75%, rgba(13,15,24,0.85) 100%); 
-                      pointer-events:none">
-          </div>
         </div>
       </Transition>
 
-      <!-- 通常の背景アニメーション -->
-      <div class="bg-animated-layer"></div>
+      <!-- 光の粒（キャラの前、スクリムと UI の後ろ） -->
+      <DustLayer />
 
-      <!-- コンテンツ（文字・ボタン） -->
+      <!-- スクリム：文字と操作の下だけ暗くする（顔の部分は暗くしない） -->
       <div
-        class="flex items-center justify-between px-6"
-        style="padding-top:20px; padding-bottom:4px; flex-shrink:0; position:relative; z-index:10"
+        aria-hidden="true"
+        style="position:absolute; left:0; right:0; top:0; height:230px; background:linear-gradient(rgba(14,15,17,0.72), rgba(14,15,17,0)); pointer-events:none"
+      />
+      <div
+        aria-hidden="true"
+        style="position:absolute; left:0; right:0; bottom:0; height:240px; background:linear-gradient(rgba(14,15,17,0), rgba(14,15,17,0.78)); pointer-events:none"
+      />
+
+      <!-- ===== UI（上と下に固定し、中央はキャラのために空ける） ===== -->
+
+      <!-- ヘッダー -->
+      <header
+        class="flex items-center justify-between"
+        style="position:absolute; left:0; right:0; top:0; height:56px; padding:0 12px 0 20px; color:var(--sv-on-image)"
       >
-        <p style="font-size:13px; color:rgba(232,234,240,0.35); letter-spacing:0.08em">SOMNIOVOX<span style="font-size:10px; opacity:0.6">（仮）</span> v0.8</p>
-        <div class="flex items-center" style="gap:16px">
+        <p class="flex items-baseline" style="gap:8px; text-shadow:0 1px 2px rgba(0,0,0,0.6)">
+          <span style="font-size:12px; font-weight:500; letter-spacing:0.22em">SOMNIOVOX</span>
+          <span style="font-size:11px; letter-spacing:0.06em">v0.9</span>
+        </p>
+        <div class="flex" style="gap:4px">
           <button
+            type="button"
+            aria-label="使い方"
+            class="header-button"
             @click="showInfoSheet = 'about'"
-            style="font-size:12px; color:rgba(232,234,240,0.3); letter-spacing:0.05em; background:none; border:none; cursor:pointer; padding:4px"
           >
-            使い方
+            <UIcon name="i-lucide-circle-help" style="width:20px; height:20px" />
           </button>
           <button
+            type="button"
+            aria-label="クレジット"
+            class="header-button"
             @click="showInfoSheet = 'credit'"
-            style="font-size:12px; color:rgba(232,234,240,0.3); letter-spacing:0.05em; background:none; border:none; cursor:pointer; padding:4px"
           >
-            クレジット
+            <UIcon name="i-lucide-info" style="width:20px; height:20px" />
+          </button>
+        </div>
+      </header>
+
+      <!-- モード切替 -->
+      <div class="flex justify-center" style="position:absolute; left:0; right:0; top:64px">
+        <div
+          role="group"
+          aria-label="モード"
+          class="flex"
+          style="padding:3px; border-radius:999px; border:1px solid rgba(255,255,255,0.28); background:var(--sv-float-bg); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:var(--sv-float-shadow)"
+        >
+          <button
+            v-for="m in MODES"
+            :key="m.id"
+            type="button"
+            :aria-pressed="mode === m.id"
+            style="height:32px; padding:0 18px; border-radius:999px; font-size:12px; letter-spacing:0.1em; cursor:pointer; transition:background-color 0.2s, color 0.2s"
+            :style="mode === m.id
+              ? { background: 'var(--sv-accent-surface)', color: 'var(--sv-accent)' }
+              : { background: 'transparent', color: 'var(--sv-on-image)' }"
+            @click="selectMode(m.id)"
+          >
+            {{ m.label }}
           </button>
         </div>
       </div>
 
-      <div class="text-center px-8" style="padding-top:12px; padding-bottom: 12px;flex-shrink:0; position:relative; z-index:10; background:rgba(0,0,0,0.1); backdrop-filter:blur(1px);">
-        <p class="text-xs tracking-widest uppercase mb-3" style="color:#9aa0b0; height:14px">
-          {{ phaseLabel }}&nbsp;
+      <!-- シャッフル：フェーズと単語（セリフのときは同じ位置にセリフ） -->
+      <div
+        v-if="mode === 'shuffle'"
+        class="flex flex-col items-center text-center"
+        style="position:absolute; left:0; right:0; top:118px; gap:8px; padding:0 12px"
+      >
+        <!-- 空のときも行の高さを保つ（&nbsp; だと中央からずれるので min-height で） -->
+        <p style="min-height:18px; font-size:12px; letter-spacing:0.18em; color:var(--sv-on-image); text-shadow:0 1px 2px rgba(0,0,0,0.6)">
+          {{ phaseLabel }}
         </p>
 
-        <div style="position:relative; height:70px; display:flex; align-items:center; justify-content:center; border-radius:12px; padding:12px">
-
+        <div class="relative w-full" style="height:57px">
           <Transition name="fade-word">
             <p
               v-if="phase !== 'phrase'"
               :key="word"
-              style="position:absolute; font-size:50px; color:rgba(232,234,240,0.6); letter-spacing:-0.01em; font-family:serif; line-height:1; margin:0; text-shadow:0 2px 12px rgba(0,0,0,0.5)"
+              class="word"
+              :style="{ '--word-length': wordLength }"
             >
               {{ word }}
             </p>
@@ -209,31 +298,40 @@ onUnmounted(() => {
             <p
               v-if="phase === 'phrase' && phrase"
               :key="phrase"
-              style="position:absolute; font-size:20px; color:rgba(232,234,240,0.6); letter-spacing:0.05em; font-family:serif; line-height:1.4; margin:0; text-shadow:0 2px 8px rgba(0,0,0,0.5)"
+              class="phrase"
             >
               {{ phrase }}
             </p>
           </Transition>
-
         </div>
       </div>
 
-      <!-- スペーサー -->
-      <div style="flex-grow:1"></div>
+      <!-- おはなし：セリフも話者名も出さず、声の波形だけ -->
+      <VoiceWaveform
+        v-else
+        :analyser="voiceAnalyser"
+        :active="isPlaying"
+        style="position:absolute; left:0; right:0; top:122px"
+      />
 
-      <div class="px-8 flex flex-col" style="padding-bottom:100px; gap:28px; flex-shrink:0; position:relative; z-index:10">
-        <ProgressBar :progress="progress" :phase="phase" />
-        <PlayerControls
-          :is-playing="isPlaying"
-          :timer-option="timerOption"
-          :timer-label="timerLabel"
-          :show-timer-menu="showTimerMenu"
-          :show-settings-menu="showSettingsMenu"
-          @toggle="toggle"
-          @toggle-timer="showTimerMenu = !showTimerMenu"
-          @toggle-settings="showSettingsMenu = !showSettingsMenu"
-        />
-      </div>
+      <!-- 進捗（844px の画面で top 684px。短い端末でも操作の上に来るよう下から置く） -->
+      <ProgressBar
+        :progress="progress"
+        style="position:absolute; left:32px; right:32px; bottom:158px"
+      />
+
+      <!-- 操作 -->
+      <PlayerControls
+        :is-playing="isPlaying"
+        :timer-active="!!timerOption"
+        :timer-label="timerLabel"
+        style="position:absolute; left:0; right:0; bottom:40px"
+        @toggle="toggle"
+        @toggle-timer="showTimerMenu = !showTimerMenu"
+        @toggle-settings="showSettingsMenu = !showSettingsMenu"
+      />
+
+      <!-- ===== シート類 ===== -->
 
       <SleepTimerSheet
         :show="showTimerMenu"
@@ -245,9 +343,11 @@ onUnmounted(() => {
       <SettingsSheet
         :show="showSettingsMenu"
         :selected-speaker="selectedSpeaker"
+        :voice-distance="voiceDistance"
         :ambient-states="ambientStates"
         @close="showSettingsMenu = false"
         @select-speaker="selectSpeaker"
+        @select-distance="setVoiceDistance"
         @toggle-ambient="toggleAmbient"
         @set-ambient-volume="setAmbientVolume"
         @set-ambient-variant="setAmbientVariant"
@@ -257,44 +357,68 @@ onUnmounted(() => {
         :show="showInfoSheet"
         @close="showInfoSheet = null"
       />
-
     </div>
   </div>
 </template>
 
 <style scoped>
+/* 中身は全部絶対配置なので、高さはここだけで決まる（dvh 非対応のブラウザでは vh を使う） */
+.stage {
+  height: 100vh;
+  height: 100dvh;
+}
+
 .character-background {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
   overflow: hidden;
 }
 
-.bg-animated-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 120% 60% at 50% 0%,   #2d1b4e 0%, transparent 70%),
-    radial-gradient(ellipse 120% 60% at 50% 50%,  #0f2a4a 0%, transparent 70%),
-    radial-gradient(ellipse 120% 60% at 50% 100%, #0d2a1f 0%, transparent 70%),
-    #0d0f18;
-  background-attachment: fixed;
-  animation: wave 6s ease-in-out infinite;
+.header-button {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
 }
 
-@keyframes wave {
-  0%   { background-position: 50% 0%,   50% 50%,  50% 100%, 0 0; }
-  25%  { background-position: 55% 5%,   48% 52%,  52% 95%,  0 0; }
-  50%  { background-position: 50% 8%,   52% 48%,  48% 100%, 0 0; }
-  75%  { background-position: 45% 3%,   50% 54%,  50% 97%,  0 0; }
-  100% { background-position: 50% 0%,   50% 50%,  50% 100%, 0 0; }
+/* 単語：Shippori Mincho 52px。収まらない長さのときだけ画面幅に合わせて縮める */
+.word {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: min(52px, calc((min(100vw, 390px) - 24px) / (var(--word-length) * 1.14)));
+  line-height: 1.1;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: var(--sv-text-strong);
+  text-shadow: var(--sv-text-shadow);
+}
+
+/* セリフ：単語と同じ位置に */
+.phrase {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  padding: 0 12px;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.75;
+  letter-spacing: 0.06em;
+  text-wrap: balance;   /* 2行になるとき、1文字だけ次の行に残らないように */
+  color: var(--sv-text-strong);
+  text-shadow: var(--sv-text-shadow);
 }
 
 .fade-word-enter-active {

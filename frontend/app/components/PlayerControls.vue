@@ -1,79 +1,83 @@
 <!-- components/PlayerControls.vue -->
+<!-- 設定・再生/停止・スリープタイマー。ボタンの下にラベルは付けない（aria-label だけ） -->
 <script setup>
 defineProps({
-  isPlaying:       { type: Boolean, required: true },
-  timerOption:     { type: Object,  default: null },
-  timerLabel:      { type: String,  default: '' },
-  showTimerMenu:   { type: Boolean, required: true },
-  showSettingsMenu:{ type: Boolean, required: true },
+  isPlaying:   { type: Boolean, required: true },
+  timerActive: { type: Boolean, default: false },
+  timerLabel:  { type: String,  default: '' },
 })
 
 defineEmits(['toggle', 'toggleTimer', 'toggleSettings'])
 </script>
 
 <template>
-  <div class="relative flex items-center justify-center">
-
-    <!-- 設定ボタン（左） -->
-    <div class="absolute" style="right: calc(50% + 44px)">
+  <div class="flex items-center justify-center" style="gap:32px">
+    <!-- 設定（左） -->
+    <div class="flex flex-col items-center" style="width:72px">
       <button
+        type="button"
+        aria-label="声と環境音の設定"
+        class="float-button"
+        style="width:60px; height:60px; border:1px solid rgba(255,255,255,0.28); color:var(--sv-text-strong)"
         @click="$emit('toggleSettings')"
-        class="flex items-center justify-center rounded-full transition-colors"
-        :style="{
-          width: '38px', height: '38px',
-          background: showSettingsMenu ? 'rgba(126,184,201,0.15)' : 'rgba(255,255,255,0.06)',
-          border:     showSettingsMenu ? '1px solid rgba(126,184,201,0.3)' : '1px solid rgba(255,255,255,0.08)',
-        }"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"
-          :stroke="showSettingsMenu ? '#7eb8c9' : '#6b7280'">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
-        </svg>
+        <UIcon name="i-lucide-sliders-horizontal" style="width:26px; height:26px" />
       </button>
     </div>
 
-    <!-- 再生・停止ボタン -->
+    <!-- 再生・停止（中央） -->
     <button
+      type="button"
+      :aria-label="isPlaying ? '停止' : '再生'"
+      class="float-button active:scale-95"
+      style="width:88px; height:88px; border:2px solid var(--sv-accent); background:rgba(24,26,30,0.7); box-shadow:0 8px 24px rgba(0,0,0,0.5); color:var(--sv-text-strong)"
       @click="$emit('toggle')"
-      class="flex items-center justify-center rounded-full transition-all active:scale-95"
-      style="width:68px; height:68px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); box-shadow:0 8px 24px rgba(0,0,0,0.4)"
     >
-      <span v-if="isPlaying"
-        class="block rounded-sm"
-        style="width:18px; height:18px; background:rgba(232,234,240,0.85)"
-      />
-      <span v-else
-        class="block"
-        style="width:0; height:0; margin-left:3px; border-top:11px solid transparent; border-bottom:11px solid transparent; border-left:18px solid rgba(232,234,240,0.85)"
-      />
+      <svg v-if="isPlaying" aria-hidden="true" width="34" height="34" viewBox="0 0 24 24">
+        <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" />
+      </svg>
+      <svg v-else aria-hidden="true" width="38" height="38" viewBox="0 0 24 24">
+        <path d="M8 5.5v13l10-6.5z" fill="currentColor" />
+      </svg>
     </button>
 
-    <!-- タイマーボタン＋残り時間（右） -->
-    <div class="absolute flex items-center" style="left: calc(50% + 44px); gap:8px">
+    <!-- タイマー（右）。動作中は差し色にして、ボタンの下に残り時間 -->
+    <div class="relative flex flex-col items-center" style="width:72px">
       <button
+        type="button"
+        aria-label="スリープタイマー"
+        class="float-button"
+        style="width:60px; height:60px"
+        :style="timerActive
+          ? { border: '1px solid var(--sv-accent)', color: 'var(--sv-accent)' }
+          : { border: '1px solid rgba(255,255,255,0.28)', color: 'var(--sv-text-strong)' }"
         @click="$emit('toggleTimer')"
-        class="flex items-center justify-center rounded-full transition-colors"
-        :style="{
-          width: '38px', height: '38px',
-          background: timerOption ? 'rgba(126,184,201,0.15)' : 'rgba(255,255,255,0.06)',
-          border:     timerOption ? '1px solid rgba(126,184,201,0.3)' : '1px solid rgba(255,255,255,0.08)',
-        }"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"
-          :stroke="timerOption ? '#7eb8c9' : '#6b7280'">
-          <circle cx="12" cy="13" r="8"/>
-          <path d="M12 9v4l2 2"/>
-          <path d="M9 2h6M12 2v3"/>
-        </svg>
+        <UIcon name="i-lucide-timer" style="width:26px; height:26px" />
       </button>
+      <!-- 残り時間は流れの外に置く（出たり消えたりしてもボタンの位置が動かないように） -->
       <span
-        v-if="timerOption"
-        class="tabular-nums text-xs"
-        style="color:#7eb8c9; min-width:36px"
+        v-if="timerActive"
+        class="tabular-nums"
+        style="position:absolute; top:calc(100% + 8px); font-size:11px; letter-spacing:0.06em; color:var(--sv-accent); white-space:nowrap"
       >{{ timerLabel }}</span>
     </div>
-
   </div>
 </template>
+
+<style scoped>
+/* イラストの上に乗る丸ボタン */
+.float-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--sv-float-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--sv-float-shadow);
+  cursor: pointer;
+  transition: scale 0.15s, border-color 0.2s, color 0.2s;  /* active:scale-95 は scale プロパティ */
+}
+</style>

@@ -2,7 +2,9 @@
 @import "@nuxt/ui";
 
 @theme static {
-  --font-sans: 'Public Sans', sans-serif;
+  /* 本文は Zen Kaku Gothic New、単語・セリフは Shippori Mincho（nuxt.config.ts で読み込み） */
+  --font-sans: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --font-serif: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
 
   --color-green-50: #EFFDF5;
   --color-green-100: #D9FBE8;
@@ -15,4 +17,25 @@
   --color-green-800: #016538;
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
+}
+
+/* SOMNIOVOX のデザイントークン。色はコンポーネントからこれを参照する */
+:root {
+  --sv-ground-1: #3a3e45;   /* 背景グラデーション中心 */
+  --sv-ground-2: #24272c;
+  --sv-ground-3: #17191c;
+  --sv-sheet:    #24272c;   /* シート面 */
+  --sv-accent:   #7ee0b8;   /* 差し色。選択中・進捗・再生ボタンなどに限って使う */
+  --sv-text-strong: #ffffff;
+  --sv-text:        #f2f3f5;
+  --sv-text-sub:    #d7dadf;
+  --sv-text-weak:   #a9aeb6;
+  --sv-on-image:    #e3e5e9;  /* イラスト上の補助文字 */
+  --sv-surface:      rgba(255,255,255,0.10);  /* 非選択の面 */
+  --sv-surface-line: rgba(255,255,255,0.16);
+  --sv-accent-surface: rgba(126,224,184,0.22);
+  --sv-accent-line:    rgba(126,224,184,0.75);
+  --sv-float-bg:     rgba(24,26,30,0.62);     /* イラスト上のボタン面 */
+  --sv-float-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  --sv-text-shadow:  0 1px 2px rgba(0,0,0,0.7), 0 2px 14px rgba(0,0,0,0.6);
 }

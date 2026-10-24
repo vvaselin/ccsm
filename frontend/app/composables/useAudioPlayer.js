@@ -1,10 +1,8 @@
 // composables/useAudioPlayer.js
-// 単語・セリフ音声の再生と進捗バー管理（出力は useAudioEngine 経由）
+// 単語・セリフ音声の再生と進捗バー管理（出力は useAudioEngine の声のバス）
 
 import { ref } from 'vue'
-import { getCtx, getMaster, audioWait } from '~/composables/useAudioEngine'
-
-const PAN_STRENGTH = 0.8
+import { getCtx, getVoiceBus, getVoicePanWidth, audioWait } from '~/composables/useAudioEngine'
 
 export function useAudioPlayer() {
   const progress = ref(0)
@@ -12,8 +10,10 @@ export function useAudioPlayer() {
   let currentSource = null
   let progressTimer = null
   let panSide       = 1
+  let generation    = 0   // stopAudio() のたびに進める（読み込み中に止められた音を鳴らさないため）
 
   async function playAudio(audioUrl, panValue = 0) {
+    const gen = generation
     const ctx = getCtx()
     if (ctx.state === 'suspended') await ctx.resume()
 
@@ -21,6 +21,7 @@ export function useAudioPlayer() {
     if (!res.ok) throw new Error(`音声の取得に失敗: ${audioUrl}`)
     const arrayBuf = await res.arrayBuffer()
     const buffer   = await ctx.decodeAudioData(arrayBuf)
+    if (gen !== generation) return 0   // 読み込み中に停止・モード切替された
 
     return new Promise((resolve) => {
       if (currentSource) {
@@ -32,7 +33,7 @@ export function useAudioPlayer() {
       panner.pan.value = panValue
       source.buffer = buffer
       source.connect(panner)
-      panner.connect(getMaster())
+      panner.connect(getVoiceBus().input)
       source.onended = () => resolve(buffer.duration)
       source.start()
       currentSource = source
@@ -54,8 +55,9 @@ export function useAudioPlayer() {
     progress.value = 0
   }
 
+  // 単語用：左右交互に振る。振り幅は声の距離で変わる
   async function playNext(audioUrl) {
-    const duration = await playAudio(audioUrl, panSide * PAN_STRENGTH)
+    const duration = await playAudio(audioUrl, panSide * getVoicePanWidth())
     panSide *= -1
     return duration
   }
@@ -66,6 +68,7 @@ export function useAudioPlayer() {
   }
 
   function stopAudio() {
+    generation++
     if (currentSource) {
       currentSource.onended = null
       try { currentSource.stop() } catch {}

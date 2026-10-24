@@ -8,17 +8,16 @@ import { getCtx as getEngineCtx, getMaster, audioWait } from '~/composables/useA
 import { loadSettings, saveSettings } from '~/composables/useSettings'
 
 // ピンクノイズに合わせた音量上限（小さめ）
-const MAX_VOLUME = 0.5
+export const MAX_VOLUME = 0.5
 
 // ファイル音源の継ぎ目処理
-const LOOP_TRIM_SEC  = 0.03   // mp3 のエンコード無音を避けるため前後を少し削る
+const LOOP_TRIM_SEC  = 0      // ループ素材の継ぎ目に穴を開けないよう削らない（mp3 の先頭・末尾の無音はデコーダーが除去する）
 const FILE_FADE_SEC  = 0.6    // 開始・停止・切り替え時のフェード
 
+// 並び順は設定シートのタイルの順（icon は lucide のクラス名）
 export const AMBIENT_SOUNDS = [
-  { id: 'pink',     label: 'ピンクノイズ',  icon: '~', kind: 'synth' },
-  { id: 'brown',    label: 'ブラウンノイズ', icon: '=', kind: 'synth' },
   {
-    id: 'rain', label: '雨音', icon: '*', kind: 'file',
+    id: 'rain', label: '雨', icon: 'i-lucide-cloud-rain', kind: 'file',
     // level: 合成ノイズ（かなり小さい）と音量感を揃えるための係数。耳で調整する
     level: 0.18,
     defaultVariant: 'normal',
@@ -28,7 +27,13 @@ export const AMBIENT_SOUNDS = [
       { id: 'heavy',  label: '強い', src: '/ambient/rain_heavy.mp3',  gain: 1.0 },
     ],
   },
-  { id: 'binaural', label: 'バイノーラル',   icon: 'o', kind: 'synth' },
+  // 音源は -23 LUFS モノラル（両耳に同じ音が出るので再生時は -20 LUFS）。
+  // 雨（普通、-36.6 LUFS）と同じスライダー位置で同じ音量感になるよう 0.18 × 10^(-16.6/20) にしてある
+  { id: 'fire',     label: '焚き火',       icon: 'i-lucide-flame',          kind: 'file', level: 0.027, src: '/ambient/fire.mp3' },
+  { id: 'river',    label: '川',           icon: 'i-lucide-waves',          kind: 'file', level: 0.027, src: '/ambient/river.mp3' },
+  { id: 'pink',     label: 'ピンク',      icon: 'i-lucide-audio-waveform', kind: 'synth' },
+  { id: 'brown',    label: 'ブラウン',     icon: 'i-lucide-activity',       kind: 'synth' },
+  { id: 'binaural', label: 'バイノーラル', icon: 'i-lucide-headphones',     kind: 'synth' },
 ]
 
 const SOUND_BY_ID = Object.fromEntries(AMBIENT_SOUNDS.map(s => [s.id, s]))
@@ -84,13 +89,13 @@ export function useAmbientSound() {
     const len  = ctx.sampleRate * 2
     const buf  = ctx.createBuffer(1, len, ctx.sampleRate)
     const data = buf.getChannelData(0)
-    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
     for (let i = 0; i < len; i++) {
       const w = Math.random() * 2 - 1
-      b0 = 0.99886*b0 + w*0.0555179; b1 = 0.99332*b1 + w*0.0750759
-      b2 = 0.96900*b2 + w*0.1538520; b3 = 0.86650*b3 + w*0.3104856
-      b4 = 0.55000*b4 + w*0.5329522; b5 = -0.7616*b5 - w*0.0168980
-      data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.01  // ピンクノイズと同じ係数
+      b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759
+      b2 = 0.96900 * b2 + w * 0.1538520; b3 = 0.86650 * b3 + w * 0.3104856
+      b4 = 0.55000 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.0168980
+      data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.01  // ピンクノイズと同じ係数
       b6 = w * 0.115926
     }
     return buf
@@ -130,8 +135,8 @@ export function useAmbientSound() {
   }
 
   // ---- ファイル音源：AudioBuffer をループ再生 ----
-  // <audio loop> だと mp3 の先頭・末尾の無音で継ぎ目が切れるので、
-  // loopStart / loopEnd で少し内側をループさせる
+  // <audio loop> だと継ぎ目で途切れるので、AudioBuffer をサンプル単位でループさせる。
+  // 削る必要がある素材のために loopStart / loopEnd を LOOP_TRIM_SEC だけ内側にできる
   function startBufferLoop(ctx, gain, buffer, level) {
     const src = ctx.createBufferSource()
     src.buffer    = buffer
@@ -216,8 +221,11 @@ export function useAmbientSound() {
     nodes[id] = entry
 
     if (sound.kind === 'file') {
-      // 非同期で読み込む。読み込み中に止められたら entry が差し替わっているので捨てる
-      const variant = sound.variants.find(v => v.id === states[id].variant) ?? sound.variants[0]
+      // 非同期で読み込む。読み込み中に止められたら entry が差し替わっているので捨てる。
+      // variants の無い音（焚き火・川）は src をそのまま使う
+      const variant = sound.variants?.find(v => v.id === states[id].variant)
+        ?? sound.variants?.[0]
+        ?? { src: sound.src, gain: 1 }
       loadBuffer(ctx, variant.src)
         .then((buffer) => {
           if (nodes[id] !== entry) return
@@ -275,7 +283,7 @@ export function useAmbientSound() {
   // 再生ボタン押下時：enabled なものを全部起動
   function startIfEnabled() {
     sessionActive = true
-    AMBIENT_SOUNDS.forEach(s => {
+    AMBIENT_SOUNDS.forEach((s) => {
       if (states[s.id].enabled) _startOne(s.id)
     })
   }
@@ -297,7 +305,7 @@ export function useAmbientSound() {
     // 再生中のノードにフェードをかける
     const ctx = getEngineCtx()
     {
-      AMBIENT_SOUNDS.forEach(s => {
+      AMBIENT_SOUNDS.forEach((s) => {
         if (!nodes[s.id]) return
         const g   = nodes[s.id].gainNode
         const now = ctx.currentTime
