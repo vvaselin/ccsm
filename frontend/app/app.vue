@@ -4,6 +4,7 @@ import { ref, shallowRef, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAudioPlayer }  from '~/composables/useAudioPlayer'
 import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
+import { useStoryLoop }    from '~/composables/useStoryLoop'
 import { useSpeaker }      from '~/composables/useSpeaker'
 import { useAmbientSound } from '~/composables/useAmbientSound'
 import { useMode, MODES }  from '~/composables/useMode'
@@ -17,7 +18,7 @@ import {
 } from '~/composables/useAudioEngine'
 
 const {
-  progress,
+  progress: wordProgress,
   playNext,
   playPhrase,
   stopAudio: stopPlayerAudio,
@@ -54,7 +55,7 @@ const {
 const {
   word,
   phrase,
-  isPlaying,
+  isPlaying:         wordPlaying,
   phase,
   phaseLabel,
   stop:              _stop,
@@ -65,15 +66,33 @@ const {
   { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio, wait }
 )
 
+const {
+  isPlaying: storyPlaying,
+  progress:  storyProgress,
+  start:     startStory,
+  stop:      stopStory,
+} = useStoryLoop()
+
+// モードによって使うループを切り替える（どちらも公開 API は同じ形）。
+// 環境音・タイマー・MediaSession・バックグラウンド再生の仕組みは両モード共通
+const isStory   = computed(() => mode.value === 'story')
+const isPlaying = computed(() => isStory.value ? storyPlaying.value : wordPlaying.value)
+const progress  = computed(() => isStory.value ? storyProgress.value : wordProgress.value)
+
 async function stop() {
-  await _stop()
+  if (isStory.value) await stopStory()
+  else await _stop()
   stopAmbient()
   setEnginePlaying(false)
 }
 
 async function stopWithPhrase() {
-  await _stop(true)
-  await playPhraseByType('stop')
+  if (isStory.value) {
+    await stopStory()
+  } else {
+    await _stop(true)
+    await playPhraseByType('stop')
+  }
   await fadeOutAudio(0, 3000)
   setEnginePlaying(false)
 }
@@ -86,9 +105,15 @@ function start() {
   if (isPlaying.value) return
   unlockAudio()
   voiceAnalyser.value = getVoiceBus().analyser
+  if (isStory.value) startStory()
+  else _start()
+  // おはなしはまだ再生の中身が無く、再生状態にならない。そのときは何も鳴らさない
+  if (!isPlaying.value) {
+    setEnginePlaying(false)
+    return
+  }
   setEnginePlaying(true)
   startAmbient()
-  _start()
 }
 
 const toggle = () => {
