@@ -70,7 +70,7 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
   const phaseLabel = computed(() => {
     if (phase.value === 'loading')  return '読み込み中…'
     if (phase.value === 'speaking') return '読み上げ中'
-    if (phase.value === 'pause')    return '思い浮かべて...'
+    if (phase.value === 'pause')    return 'イメージして…'
     if (phase.value === 'phrase')   return ''
     return ''
   })

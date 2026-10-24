@@ -30,6 +30,13 @@ export default defineNuxtConfig({
     fonts: false,
   },
 
+  // アイコンをクライアントの JS に同梱する（静的配信・オフラインでも API なしで表示できるように）
+  icon: {
+    clientBundle: {
+      scan: true,
+    },
+  },
+
   routeRules: {
     '/': { prerender: true }
   },

@@ -1,24 +1,19 @@
 <!-- components/ProgressBar.vue -->
+<!-- シャッフルは単語ごとの進捗、おはなしは朗読全体の進み具合 -->
 <script setup>
 defineProps({
-  progress: { type: Number, required: true },
-  phase:    { type: String, required: true },
+  progress: { type: Number, required: true },  // 0〜100
 })
 </script>
 
 <template>
   <div
-    class="w-full rounded-full overflow-hidden"
-    style="height:1px; background:rgba(255,255,255,0.08)"
+    aria-hidden="true"
+    style="height:2px; border-radius:1px; background:rgba(255,255,255,0.28); box-shadow:0 1px 3px rgba(0,0,0,0.5)"
   >
     <div
-      class="h-full rounded-full transition-colors duration-300"
-      :class="{
-        'bg-gray-300':              phase === 'speaking',
-        'bg-gray-500':              phase === 'pause',
-        'bg-gray-600 animate-pulse': phase === 'loading',
-      }"
-      :style="{ width: progress + '%' }"
+      style="height:2px; border-radius:1px; background:var(--sv-accent)"
+      :style="{ width: `${progress}%` }"
     />
   </div>
 </template>

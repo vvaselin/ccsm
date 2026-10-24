@@ -6,6 +6,7 @@ import { useSleepTimer }   from '~/composables/useSleepTimer'
 import { useWordLoop }     from '~/composables/useWordLoop'
 import { useSpeaker }      from '~/composables/useSpeaker'
 import { useAmbientSound } from '~/composables/useAmbientSound'
+import { useMode, MODES }  from '~/composables/useMode'
 import {
   unlock as unlockAudio,
   setPlaying as setEnginePlaying,
@@ -32,6 +33,8 @@ const {
 } = useSleepTimer(() => stopWithPhrase())
 
 const { selectedSpeaker, selectSpeaker } = useSpeaker()
+
+const { mode, setMode } = useMode()
 
 const {
   states:         ambientStates,
@@ -88,6 +91,16 @@ const toggle = () => {
   }
 }
 
+// 再生中に切り替えたら、いったん止めてから切り替える
+async function selectMode(id) {
+  if (id === mode.value) return
+  if (isPlaying.value) await stop()
+  setMode(id)
+}
+
+// 単語は 52px。長い単語（7文字〜）だけ、画面幅に収まるよう縮める
+const wordLength = computed(() => [...word.value].length)
+
 // ロック画面・通知・イヤホンのボタン
 onMounted(() => {
   setupMediaSession({
@@ -137,8 +150,8 @@ onUnmounted(() => {
   </Head>
   <div class="min-h-screen flex items-center justify-center" style="overflow:hidden; position:fixed; width:100%; height:100%; background:var(--sv-ground-3)">
     <div
-      class="relative flex flex-col justify-between w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden; background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
+      class="relative w-full"
+      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden; color:var(--sv-text); background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
     >
       <!-- キャラクター（腰から上）。コンテナ幅を基準に置き、object-fit は使わない
            （目の位置が端末で変わらないように。縦長の端末では下の余白が増えるだけ） -->
@@ -170,40 +183,78 @@ onUnmounted(() => {
         style="position:absolute; left:0; right:0; bottom:0; height:240px; background:linear-gradient(rgba(14,15,17,0), rgba(14,15,17,0.78)); pointer-events:none"
       />
 
-      <!-- コンテンツ（文字・ボタン） -->
-      <div
-        class="flex items-center justify-between px-6"
-        style="padding-top:20px; padding-bottom:4px; flex-shrink:0; position:relative; z-index:10"
+      <!-- ===== UI（上と下に固定し、中央はキャラのために空ける） ===== -->
+
+      <!-- ヘッダー -->
+      <header
+        class="flex items-center justify-between"
+        style="position:absolute; left:0; right:0; top:0; height:56px; padding:0 12px 0 20px; color:var(--sv-on-image)"
       >
-        <p style="font-size:13px; color:rgba(232,234,240,0.35); letter-spacing:0.08em">SOMNIOVOX<span style="font-size:10px; opacity:0.6">（仮）</span> v0.8</p>
-        <div class="flex items-center" style="gap:16px">
+        <p class="flex items-baseline" style="gap:8px; text-shadow:0 1px 2px rgba(0,0,0,0.6)">
+          <span style="font-size:12px; font-weight:500; letter-spacing:0.22em">SOMNIOVOX</span>
+          <span style="font-size:11px; letter-spacing:0.06em">v0.9</span>
+        </p>
+        <div class="flex" style="gap:4px">
           <button
+            type="button"
+            aria-label="使い方"
+            class="header-button"
             @click="showInfoSheet = 'about'"
-            style="font-size:12px; color:rgba(232,234,240,0.3); letter-spacing:0.05em; background:none; border:none; cursor:pointer; padding:4px"
           >
-            使い方
+            <UIcon name="i-lucide-circle-help" style="width:20px; height:20px" />
           </button>
           <button
+            type="button"
+            aria-label="クレジット"
+            class="header-button"
             @click="showInfoSheet = 'credit'"
-            style="font-size:12px; color:rgba(232,234,240,0.3); letter-spacing:0.05em; background:none; border:none; cursor:pointer; padding:4px"
           >
-            クレジット
+            <UIcon name="i-lucide-info" style="width:20px; height:20px" />
+          </button>
+        </div>
+      </header>
+
+      <!-- モード切替 -->
+      <div class="flex justify-center" style="position:absolute; left:0; right:0; top:64px">
+        <div
+          role="group"
+          aria-label="モード"
+          class="flex"
+          style="padding:3px; border-radius:999px; border:1px solid rgba(255,255,255,0.28); background:var(--sv-float-bg); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:var(--sv-float-shadow)"
+        >
+          <button
+            v-for="m in MODES"
+            :key="m.id"
+            type="button"
+            :aria-pressed="mode === m.id"
+            style="height:32px; padding:0 18px; border-radius:999px; font-size:12px; letter-spacing:0.1em; cursor:pointer; transition:background-color 0.2s, color 0.2s"
+            :style="mode === m.id
+              ? { background: 'var(--sv-accent-surface)', color: 'var(--sv-accent)' }
+              : { background: 'transparent', color: 'var(--sv-on-image)' }"
+            @click="selectMode(m.id)"
+          >
+            {{ m.label }}
           </button>
         </div>
       </div>
 
-      <div class="text-center px-8" style="padding-top:12px; padding-bottom: 12px;flex-shrink:0; position:relative; z-index:10; background:rgba(0,0,0,0.1); backdrop-filter:blur(1px);">
-        <p class="text-xs tracking-widest uppercase mb-3" style="color:#9aa0b0; height:14px">
+      <!-- シャッフル：フェーズと単語（セリフのときは同じ位置にセリフ） -->
+      <div
+        v-if="mode === 'shuffle'"
+        class="flex flex-col items-center text-center"
+        style="position:absolute; left:0; right:0; top:118px; gap:8px; padding:0 12px"
+      >
+        <p style="font-size:12px; letter-spacing:0.18em; color:var(--sv-on-image); text-shadow:0 1px 2px rgba(0,0,0,0.6)">
           {{ phaseLabel }}&nbsp;
         </p>
 
-        <div style="position:relative; height:70px; display:flex; align-items:center; justify-content:center; border-radius:12px; padding:12px">
-
+        <div class="relative w-full" style="height:57px">
           <Transition name="fade-word">
             <p
               v-if="phase !== 'phrase'"
               :key="word"
-              style="position:absolute; font-size:50px; color:rgba(232,234,240,0.6); letter-spacing:-0.01em; font-family:serif; line-height:1; margin:0; text-shadow:0 2px 12px rgba(0,0,0,0.5)"
+              class="word"
+              :style="{ '--word-length': wordLength }"
             >
               {{ word }}
             </p>
@@ -213,31 +264,39 @@ onUnmounted(() => {
             <p
               v-if="phase === 'phrase' && phrase"
               :key="phrase"
-              style="position:absolute; font-size:20px; color:rgba(232,234,240,0.6); letter-spacing:0.05em; font-family:serif; line-height:1.4; margin:0; text-shadow:0 2px 8px rgba(0,0,0,0.5)"
+              class="phrase"
             >
               {{ phrase }}
             </p>
           </Transition>
-
         </div>
       </div>
 
-      <!-- スペーサー -->
-      <div style="flex-grow:1"></div>
+      <!-- おはなし：セリフも話者名も出さず、声の波形だけ -->
+      <VoiceWaveform
+        v-else
+        :active="isPlaying"
+        style="position:absolute; left:0; right:0; top:122px"
+      />
 
-      <div class="px-8 flex flex-col" style="padding-bottom:100px; gap:28px; flex-shrink:0; position:relative; z-index:10">
-        <ProgressBar :progress="progress" :phase="phase" />
-        <PlayerControls
-          :is-playing="isPlaying"
-          :timer-option="timerOption"
-          :timer-label="timerLabel"
-          :show-timer-menu="showTimerMenu"
-          :show-settings-menu="showSettingsMenu"
-          @toggle="toggle"
-          @toggle-timer="showTimerMenu = !showTimerMenu"
-          @toggle-settings="showSettingsMenu = !showSettingsMenu"
-        />
-      </div>
+      <!-- 進捗（844px の画面で top 684px。短い端末でも操作の上に来るよう下から置く） -->
+      <ProgressBar
+        :progress="progress"
+        style="position:absolute; left:32px; right:32px; bottom:158px"
+      />
+
+      <!-- 操作 -->
+      <PlayerControls
+        :is-playing="isPlaying"
+        :timer-active="!!timerOption"
+        :timer-label="timerLabel"
+        style="position:absolute; left:0; right:0; bottom:40px"
+        @toggle="toggle"
+        @toggle-timer="showTimerMenu = !showTimerMenu"
+        @toggle-settings="showSettingsMenu = !showSettingsMenu"
+      />
+
+      <!-- ===== シート類 ===== -->
 
       <SleepTimerSheet
         :show="showTimerMenu"
@@ -261,7 +320,6 @@ onUnmounted(() => {
         :show="showInfoSheet"
         @close="showInfoSheet = null"
       />
-
     </div>
   </div>
 </template>
@@ -274,6 +332,49 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.header-button {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
+}
+
+/* 単語：Shippori Mincho 52px。収まらない長さのときだけ画面幅に合わせて縮める */
+.word {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: min(52px, calc((min(100vw, 390px) - 24px) / (var(--word-length) * 1.14)));
+  line-height: 1.1;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: var(--sv-text-strong);
+  text-shadow: var(--sv-text-shadow);
+}
+
+/* セリフ：単語と同じ位置に */
+.phrase {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  padding: 0 12px;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.75;
+  letter-spacing: 0.06em;
+  color: var(--sv-text-strong);
+  text-shadow: var(--sv-text-shadow);
 }
 
 .fade-word-enter-active {
