@@ -135,12 +135,13 @@ onUnmounted(() => {
     <Meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <Link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </Head>
-  <div class="min-h-screen flex items-center justify-center bg-animated" style="overflow:hidden; position:fixed; width:100%; height:100%">
+  <div class="min-h-screen flex items-center justify-center" style="overflow:hidden; position:fixed; width:100%; height:100%; background:var(--sv-ground-3)">
     <div
       class="relative flex flex-col justify-between w-full"
-      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden"
+      style="max-width:390px; height:100dvh; max-height:844px; overflow:hidden; background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
     >
-      <!-- 背景キャラクター画像（全体表示） -->
+      <!-- キャラクター（腰から上）。コンテナ幅を基準に置き、object-fit は使わない
+           （目の位置が端末で変わらないように。縦長の端末では下の余白が増えるだけ） -->
       <Transition name="fade-character">
         <div
           v-if="selectedSpeaker?.id === 50"
@@ -148,23 +149,26 @@ onUnmounted(() => {
           class="character-background"
         >
           <img
-            src="/TT.webp"
-            alt="ナースロボ＿タイプＴ"
-            style="position:absolute; top:50px; left:0; width:100%; height:100%; object-fit:cover; object-position:center; pointer-events:none"
+            src="/characters/nurse_robo.webp"
+            alt=""
+            aria-hidden="true"
+            style="position:absolute; width:110.5%; left:-4.9%; top:116px; height:auto; max-width:none; pointer-events:none; user-select:none"
           />
-          <div style="position:absolute; 
-                      top:0; 
-                      left:0; 
-                      width:100%; 
-                      height:100%; 
-                      background:linear-gradient(to bottom, rgba(13,15,24,0.85) 0%, rgba(13,15,24,0.3) 25%, rgba(13,15,24,0.3) 75%, rgba(13,15,24,0.85) 100%); 
-                      pointer-events:none">
-          </div>
         </div>
       </Transition>
 
-      <!-- 通常の背景アニメーション -->
-      <div class="bg-animated-layer"></div>
+      <!-- 光の粒（キャラの前、スクリムと UI の後ろ） -->
+      <DustLayer />
+
+      <!-- スクリム：文字と操作の下だけ暗くする（顔の部分は暗くしない） -->
+      <div
+        aria-hidden="true"
+        style="position:absolute; left:0; right:0; top:0; height:230px; background:linear-gradient(rgba(14,15,17,0.72), rgba(14,15,17,0)); pointer-events:none"
+      />
+      <div
+        aria-hidden="true"
+        style="position:absolute; left:0; right:0; bottom:0; height:240px; background:linear-gradient(rgba(14,15,17,0), rgba(14,15,17,0.78)); pointer-events:none"
+      />
 
       <!-- コンテンツ（文字・ボタン） -->
       <div
@@ -269,32 +273,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
   overflow: hidden;
-}
-
-.bg-animated-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 120% 60% at 50% 0%,   #2d1b4e 0%, transparent 70%),
-    radial-gradient(ellipse 120% 60% at 50% 50%,  #0f2a4a 0%, transparent 70%),
-    radial-gradient(ellipse 120% 60% at 50% 100%, #0d2a1f 0%, transparent 70%),
-    #0d0f18;
-  background-attachment: fixed;
-  animation: wave 6s ease-in-out infinite;
-}
-
-@keyframes wave {
-  0%   { background-position: 50% 0%,   50% 50%,  50% 100%, 0 0; }
-  25%  { background-position: 55% 5%,   48% 52%,  52% 95%,  0 0; }
-  50%  { background-position: 50% 8%,   52% 48%,  48% 100%, 0 0; }
-  75%  { background-position: 45% 3%,   50% 54%,  50% 97%,  0 0; }
-  100% { background-position: 50% 0%,   50% 50%,  50% 100%, 0 0; }
 }
 
 .fade-word-enter-active {
