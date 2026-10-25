@@ -60,15 +60,26 @@ export function getMaster() {
 
 // ---- 声のバス ----
 //
-//   source → panner → input ─┬─ lowpass ─┬────────────────────→ output → master
-//                            │           └─ convolver ─ wetGain ┘
+//   source → panner → input ─┬─ lowshelf ─ lowpass ─┬───────────────────→ output → master
+//                            │                      └─ convolver ─ wetGain ┘
 //                            └─ analyser（波形用。出力はどこにも繋がない）
 //
-// 声の距離ごとの値。音量（ゲイン）は変えず、こもり具合・左右の振り幅・残響で距離感を出す
+// ConvolverNode は入力が無音の間だけ Chrome が処理を省く。つまり単語が鳴り始めた
+// 瞬間だけ音声スレッドの負荷が跳ね上がり、環境音がプツプツ途切れる原因になる
+// （実測：声のバス全体で 20ms/20秒 → 残響を足すと 160ms/20秒）。
+// しかも耳元は wet=0 で残響が一切聞こえないのに、コストだけは満額かかっていた。
+// そこで wet>0 の距離に切り替わったときだけ convolver を繋ぐようにしてある。
+//
+// 声の距離ごとの値。音量（ゲイン）は変えず、こもり具合・左右の振り幅・残響・低音で距離感を出す。
+//
+// lowpass はもともと「耳元ほどこもる」向きだったが、それだと耳元が壁越しのように
+// 遠く聴こえていた。ささやき声の近さは息やサ行の高い成分が作るので、
+// 近いほど開き、遠いほどこもる向きに直してある。
+// bass は近接効果（口元に近いほど低音が持ち上がる）を真似た低域シェルフの dB。
 const VOICE_DISTANCE_PARAMS = {
-  ear:  { lowpass: 3500,  pan: 0.8, wet: 0 },
-  near: { lowpass: 8000,  pan: 0.5, wet: 0.12 },
-  far:  { lowpass: 18000, pan: 0.2, wet: 0.3 },
+  ear:  { lowpass: 16000, pan: 1.0,  wet: 0,    bass: 4 },   // 真横・こもらせない・低音を足す
+  near: { lowpass: 11000, pan: 0.55, wet: 0.12, bass: 1.5 },
+  far:  { lowpass: 7000,  pan: 0.25, wet: 0.3,  bass: 0 },
 }
 const DISTANCE_RAMP_SEC = 0.4   // 距離を切り替えたとき、この時間をかけて滑らかに変える
 
@@ -96,12 +107,15 @@ export function getVoiceBus() {
 
   const input = c.createGain()
 
+  // 近接効果ぶんの低域シェルフ
+  const lowshelf = c.createBiquadFilter()
+  lowshelf.type            = 'lowshelf'
+  lowshelf.frequency.value = 220
+  lowshelf.gain.value      = p.bass
+
   const lowpass = c.createBiquadFilter()
   lowpass.type            = 'lowpass'
   lowpass.frequency.value = p.lowpass
-
-  const convolver = c.createConvolver()
-  convolver.buffer = makeImpulseResponse(c)
 
   const wetGain = c.createGain()
   wetGain.gain.value = p.wet
@@ -112,13 +126,31 @@ export function getVoiceBus() {
   analyser.fftSize               = 512
   analyser.smoothingTimeConstant = 0.7
 
-  input.connect(lowpass)
+  input.connect(lowshelf)
+  lowshelf.connect(lowpass)
   lowpass.connect(output)
-  lowpass.connect(convolver)
-  convolver.connect(wetGain)
   wetGain.connect(output)
   output.connect(master)
   input.connect(analyser)
+
+  // 残響は使う距離に切り替わってから作る。IR の生成もここまで遅らせられる
+  let convolver = null
+  let detachId  = 0
+
+  function attachConvolver() {
+    if (!convolver) {
+      convolver = c.createConvolver()
+      convolver.buffer = makeImpulseResponse(c)
+      convolver.connect(wetGain)
+    }
+    lowpass.connect(convolver)   // 繋がっている相手への connect は仕様上 no-op
+  }
+
+  // 入力を切るだけ。残った尾は鳴り切ってから勝手に止まる。
+  // 繋がっていない相手への disconnect は例外になるので握りつぶす
+  function detachConvolver() {
+    if (convolver) { try { lowpass.disconnect(convolver) } catch {} }
+  }
 
   function setDistance(d) {
     const q = VOICE_DISTANCE_PARAMS[d]
@@ -128,8 +160,19 @@ export function getVoiceBus() {
     const now = c.currentTime
     const tc  = DISTANCE_RAMP_SEC / 3
     lowpass.frequency.setTargetAtTime(q.lowpass, now, tc)
+    lowshelf.gain.setTargetAtTime(q.bass, now, tc)
     wetGain.gain.setTargetAtTime(q.wet, now, tc)
+
+    clearTimeout(detachId)
+    if (q.wet > 0) {
+      attachConvolver()
+    } else {
+      // wet が 0 に落ちきってから切り離す（切り替えの瞬間に残響が途切れないように）
+      detachId = setTimeout(detachConvolver, DISTANCE_RAMP_SEC * 1000 + 100)
+    }
   }
+
+  if (p.wet > 0) attachConvolver()
 
   voiceBus = { input, analyser, setDistance }
   return voiceBus
@@ -212,6 +255,17 @@ export function setupMediaSession({ onPlay, onPause, title, artist, artwork = []
 export function updateMediaMetadata({ title, artist, artwork = [] }) {
   if (!('mediaSession' in navigator)) return
   try { navigator.mediaSession.metadata = new MediaMetadata({ title, artist, artwork }) } catch {}
+}
+
+// 現在値から 0 まで滑らかに落として、落ち切るまで待つ。
+// cancelScheduledValues の前に生の現在値を setValueAtTime で固定するのが肝で、
+// これを忘れるとランプが「最後に予約された値」から始まって音が飛ぶ。
+export function rampToZero(param, sec, c = getCtx()) {
+  const now = c.currentTime
+  param.cancelScheduledValues(now)
+  param.setValueAtTime(param.value, now)
+  param.linearRampToValueAtTime(0, now + sec)
+  return audioWait(sec * 1000 + 50)
 }
 
 // setTimeout の代替。無音バッファを鳴らし、終わりを onended で受け取る。
