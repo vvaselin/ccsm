@@ -2,8 +2,8 @@
 // 声の距離（耳元 / そば / すこし離れて）の選択（選択は localStorage に保存）
 
 import { ref, onMounted } from 'vue'
-import { loadSettings, saveSettings } from '~/composables/useSettings'
-import { setVoiceDistance as applyToVoiceBus } from '~/composables/useAudioEngine'
+import { loadSettings, saveSettings } from '~/lib/settings'
+import { setVoiceDistance as applyToVoiceBus } from '~/lib/audio/voiceBus'
 
 export const VOICE_DISTANCES = [
   { id: 'ear',  label: '耳元' },

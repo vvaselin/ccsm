@@ -1,4 +1,4 @@
-// composables/useSettings.js
+// lib/settings.js
 // 設定の永続化（localStorage）。SSR/プリレンダー時は何もしない
 
 const KEY = 'somniovox_settings_v1'

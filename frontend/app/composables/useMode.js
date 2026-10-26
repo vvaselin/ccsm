@@ -2,7 +2,7 @@
 // 再生モード（シャッフル / おはなし）の選択（選択は localStorage に保存）
 
 import { ref, onMounted } from 'vue'
-import { loadSettings, saveSettings } from '~/composables/useSettings'
+import { loadSettings, saveSettings } from '~/lib/settings'
 
 export const MODES = [
   { id: 'shuffle', label: 'シャッフル' },

@@ -1,8 +1,9 @@
 // composables/useAudioPlayer.js
-// 単語・セリフ音声の再生と進捗バー管理（出力は useAudioEngine の声のバス）
+// 単語・セリフ音声の再生と進捗バー管理（出力は lib/audio/voiceBus の声のバス）
 
 import { ref } from 'vue'
-import { getCtx, getVoiceBus, getVoicePanWidth, audioWait } from '~/composables/useAudioEngine'
+import { getCtx, audioWait }             from '~/lib/audio/context'
+import { getVoiceBus, getVoicePanWidth } from '~/lib/audio/voiceBus'
 
 export function useAudioPlayer() {
   const progress = ref(0)

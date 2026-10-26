@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { AMBIENT_SOUNDS } from './app/lib/ambient/sounds.js'
+
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
@@ -49,15 +51,9 @@ export default defineNuxtConfig({
   icon: {
     clientBundle: {
       scan: true,
-      // 環境音のアイコンは composables（.js）にあり走査されないので明示する
-      icons: [
-        'lucide:cloud-rain',
-        'lucide:flame',
-        'lucide:waves',
-        'lucide:audio-waveform',
-        'lucide:activity',
-        'lucide:orbit',
-      ],
+      // 環境音のアイコンは lib（.js）にあり走査されないので、音の一覧から作って明示する
+      // （'i-lucide-cloud-rain' → 'lucide:cloud-rain'）
+      icons: AMBIENT_SOUNDS.map(s => s.icon.replace('i-lucide-', 'lucide:')),
     },
   },
 

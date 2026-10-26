@@ -2,8 +2,8 @@
 // おはなしモードの再生ループ（土台）
 //
 // 公開 API は useWordLoop と同じ形（isPlaying, progress, start(), stop()）で、
-// app.vue はモードによって呼び分けるだけにしてある。
-// 朗読の音声は useAudioEngine の getVoiceBus().input に流せば、声の距離と波形がそのまま効く
+// usePlayback はモードによって呼び分けるだけにしてある。
+// 朗読の音声は lib/audio/voiceBus の getVoiceBus().input に流せば、声の距離と波形がそのまま効く
 
 import { ref } from 'vue'
 

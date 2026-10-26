@@ -35,7 +35,24 @@
   --sv-surface-line: rgba(255,255,255,0.16);
   --sv-accent-surface: rgba(126,224,184,0.22);
   --sv-accent-line:    rgba(126,224,184,0.75);
+  --sv-accent-chip:    rgba(126,224,184,0.28);  /* 選択中のチップ（雨の強さ）の面 */
+  --sv-sheet-line:     rgba(126,224,184,0.22);  /* シート上辺の線 */
   --sv-float-bg:     rgba(24,26,30,0.62);     /* イラスト上のボタン面 */
   --sv-float-shadow: 0 6px 18px rgba(0,0,0,0.45);
   --sv-text-shadow:  0 1px 2px rgba(0,0,0,0.7), 0 2px 14px rgba(0,0,0,0.6);
+}
+
+/* 選べるタイル（設定シートの声・距離・環境音、スリープタイマーの選択肢）。選択中だけ差し色。
+   大きさ・角丸・文字は使う側で決める */
+.sv-tile {
+  border: 1px solid var(--sv-surface-line);
+  background: var(--sv-surface);
+  color: var(--sv-text-sub);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.sv-tile.is-on {
+  border-color: var(--sv-accent-line);
+  background: var(--sv-accent-surface);
+  color: var(--sv-accent);
 }

@@ -1,9 +1,11 @@
 // composables/useWordLoop.js
 // 単語取得・読み上げのメインループ（APIなし・フロント完結版）
-// 待機は setTimeout ではなく音声クロック（useAudioEngine.audioWait）で行う
+// 待機は setTimeout ではなく音声クロック（lib/audio/context の audioWait）で行う
 
 import { ref, computed } from 'vue'
-import { useWordPicker } from '~/composables/useWordPicker'
+import { useWordPicker }  from '~/composables/useWordPicker'
+import { useAudioPlayer } from '~/composables/useAudioPlayer'
+import { SPEAKERS }       from '~/composables/useSpeaker'
 
 const PAUSE_MIN_MS    = 8000   // 最小待機時間: 8秒
 const PAUSE_MAX_MS    = 13000  // 最大待機時間: 13秒
@@ -16,19 +18,6 @@ const RELAX_JITTER    = 3
 // ローカル: public/audio_cache/ を参照
 const AUDIO_BASE = import.meta.env.VITE_AUDIO_BASE_URL || '/audio_cache'
 
-// スピーカーIDに対応する口調スタイル（phrases.pyのSPEAKER_STYLEと同期）
-const SPEAKER_STYLE = {
-  19:  'formal',
-  22:  'noda',
-  31:  'default',
-  36:  'ojosama',
-  45:  'loli',
-  50:  'default',
-  105: 'loli',
-  117: 'mon',
-  125: 'formal',
-}
-
 let _phrasesCache = null
 
 async function loadPhrases() {
@@ -40,7 +29,8 @@ async function loadPhrases() {
 }
 
 function pickPhrase(phrases, type, speakerId) {
-  const style      = SPEAKER_STYLE[speakerId] ?? 'default'
+  // 口調は useSpeaker の SPEAKERS の phraseStyle
+  const style      = SPEAKERS.find(s => s.id === speakerId)?.phraseStyle ?? 'default'
   const candidates = phrases[type]?.[style] ?? phrases[type]?.['default'] ?? []
   if (candidates.length === 0) return null
   return candidates[Math.floor(Math.random() * candidates.length)]
@@ -59,8 +49,17 @@ function getRandomPauseTime() {
   return PAUSE_MIN_MS + Math.random() * (PAUSE_MAX_MS - PAUSE_MIN_MS)
 }
 
-export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, startProgress, resetProgress, stopAudio, wait }) {
+export function useWordLoop(speakerId) {
   const { pickNext } = useWordPicker()
+  const {
+    progress,
+    playNext,
+    playPhrase: playPhraseAudio,
+    startProgress,
+    resetProgress,
+    stopAudio,
+    wait,
+  } = useAudioPlayer()
 
   const word      = ref('再生ボタンで開始')
   const phrase    = ref('')
@@ -220,23 +219,15 @@ export function useWordLoop(speakerId, { playNext, playPhrase: playPhraseAudio, 
     await playPhrase(type, loopId)
   }
 
-  const toggle = async () => {
-    if (isPlaying.value) {
-      await stop()
-    } else {
-      await start()
-    }
-  }
-
   return {
     word,
     phrase,
     isPlaying,
+    progress,
     phase,
     phaseLabel,
     start,
     stop,
-    toggle,
     playPhraseByType,
   }
 }

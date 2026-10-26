@@ -1,31 +1,12 @@
 <!-- app.vue -->
 <script setup>
-import { ref, shallowRef, computed, watch, onUnmounted, onMounted } from 'vue'
-import { useAudioPlayer }  from '~/composables/useAudioPlayer'
-import { useSleepTimer }   from '~/composables/useSleepTimer'
-import { useWordLoop }     from '~/composables/useWordLoop'
-import { useStoryLoop }    from '~/composables/useStoryLoop'
-import { useSpeaker }      from '~/composables/useSpeaker'
-import { useAmbientSound } from '~/composables/useAmbientSound'
-import { useMode, MODES }  from '~/composables/useMode'
+import { ref, computed, onUnmounted, onMounted } from 'vue'
+import { useSleepTimer }    from '~/composables/useSleepTimer'
+import { useSpeaker }       from '~/composables/useSpeaker'
+import { useAmbientSound }  from '~/composables/useAmbientSound'
+import { useMode, MODES }   from '~/composables/useMode'
 import { useVoiceDistance } from '~/composables/useVoiceDistance'
-import {
-  unlock as unlockAudio,
-  setPlaying as setEnginePlaying,
-  setupMediaSession,
-  updateMediaMetadata,
-  getVoiceBus,
-} from '~/composables/useAudioEngine'
-
-const {
-  progress: wordProgress,
-  playNext,
-  playPhrase,
-  stopAudio: stopPlayerAudio,
-  startProgress,
-  resetProgress,
-  wait,
-} = useAudioPlayer()
+import { usePlayback }      from '~/composables/usePlayback'
 
 const {
   timerOption,
@@ -41,116 +22,32 @@ const { mode, setMode } = useMode()
 
 const { voiceDistance, setVoiceDistance } = useVoiceDistance()
 
+const ambient = useAmbientSound()
 const {
-  states:         ambientStates,
-  toggle:         toggleAmbient,
-  setVolume:      setAmbientVolume,
-  startIfEnabled: startAmbient,
-  stopAudio:      stopAmbient,
-  fadeOutAudio,
-  dispose:        disposeAmbient,
+  states:     ambientStates,
+  toggle:     toggleAmbient,
+  setVolume:  setAmbientVolume,
+  dispose:    disposeAmbient,
   setVariant: setAmbientVariant,
-} = useAmbientSound()
+} = ambient
 
+// 再生の制御（モード切り替え・環境音・バックグラウンド再生・MediaSession）
 const {
   word,
   phrase,
-  isPlaying:         wordPlaying,
   phase,
   phaseLabel,
-  stop:              _stop,
-  start:             _start,
-  playPhraseByType,
-} = useWordLoop(
-  computed(() => selectedSpeaker.value?.id),
-  { playNext, playPhrase, startProgress, resetProgress, stopAudio: stopPlayerAudio, wait }
-)
-
-const {
-  isPlaying: storyPlaying,
-  progress:  storyProgress,
-  start:     startStory,
-  stop:      stopStory,
-} = useStoryLoop()
-
-// モードによって使うループを切り替える（どちらも公開 API は同じ形）。
-// 環境音・タイマー・MediaSession・バックグラウンド再生の仕組みは両モード共通
-const isStory   = computed(() => mode.value === 'story')
-const isPlaying = computed(() => isStory.value ? storyPlaying.value : wordPlaying.value)
-const progress  = computed(() => isStory.value ? storyProgress.value : wordProgress.value)
-
-async function stop() {
-  if (isStory.value) await stopStory()
-  else await _stop()
-  stopAmbient()
-  setEnginePlaying(false)
-}
-
-async function stopWithPhrase() {
-  if (isStory.value) {
-    await stopStory()
-  } else {
-    await _stop(true)
-    await playPhraseByType('stop')
-  }
-  await fadeOutAudio(0, 3000)
-  setEnginePlaying(false)
-}
-
-// 波形に渡す声のバスの Analyser（AudioContext はタップ後に作るので、それまでは null）
-const voiceAnalyser = shallowRef(null)
-
-// ユーザーのタップから同期的に呼ばれる必要がある（unlockAudio のため）
-function start() {
-  if (isPlaying.value) return
-  unlockAudio()
-  voiceAnalyser.value = getVoiceBus().analyser
-  if (isStory.value) startStory()
-  else _start()
-  // おはなしはまだ再生の中身が無く、再生状態にならない。そのときは何も鳴らさない
-  if (!isPlaying.value) {
-    setEnginePlaying(false)
-    return
-  }
-  setEnginePlaying(true)
-  startAmbient()
-}
-
-const toggle = () => {
-  if (isPlaying.value) {
-    stop()
-  } else {
-    start()
-  }
-}
-
-// 再生中に切り替えたら、いったん止めてから切り替える
-async function selectMode(id) {
-  if (id === mode.value) return
-  if (isPlaying.value) await stop()
-  setMode(id)
-}
+  isPlaying,
+  progress,
+  voiceAnalyser,
+  stop,
+  stopWithPhrase,
+  toggle,
+  selectMode,
+} = usePlayback({ mode, setMode, selectedSpeaker, ambient })
 
 // 単語は 52px。長い単語（7文字〜）だけ、画面幅に収まるよう縮める
 const wordLength = computed(() => [...word.value].length)
-
-// ロック画面・通知・イヤホンのボタン
-onMounted(() => {
-  setupMediaSession({
-    title:   'SOMNIOVOX',
-    artist:  selectedSpeaker.value?.name ?? '',
-    artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
-    onPlay:  () => start(),
-    onPause: () => stop(),
-  })
-})
-watch(selectedSpeaker, (s) => {
-  updateMediaMetadata({
-    title:   'SOMNIOVOX',
-    artist:  s?.name ?? '',
-    artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
-  })
-})
 
 const showSettingsMenu = ref(false)
 const showInfoSheet = ref(null)
@@ -211,12 +108,12 @@ onUnmounted(() => {
            （目の位置が端末で変わらないように。縦長の端末では下の余白が増えるだけ） -->
       <Transition name="fade-character">
         <div
-          v-if="selectedSpeaker?.id === 50"
-          key="nurse-robot-bg"
+          v-if="selectedSpeaker?.image"
+          :key="selectedSpeaker.image"
           class="character-background"
         >
           <img
-            src="/characters/nurse_robo.webp"
+            :src="selectedSpeaker.image"
             alt=""
             aria-hidden="true"
             style="position:absolute; width:110.5%; left:-4.9%; top:116px; height:auto; max-width:none; pointer-events:none; user-select:none"
