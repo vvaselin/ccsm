@@ -56,7 +56,7 @@ export default defineNuxtConfig({
         'lucide:waves',
         'lucide:audio-waveform',
         'lucide:activity',
-        'lucide:headphones',
+        'lucide:orbit',
       ],
     },
   },
@@ -101,7 +101,7 @@ export default defineNuxtConfig({
       runtimeCaching: [
         // 音声ファイル
         {
-          urlPattern: /\/audio_cache\/.*\.wav$/,
+          urlPattern: ({ url }) => url.pathname.endsWith('.wav'),
           handler: 'CacheFirst',
           options: {
             cacheName: 'audio-cache',

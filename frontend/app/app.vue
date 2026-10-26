@@ -174,14 +174,35 @@ onUnmounted(() => {
   <!-- こんなとこ見てないで、はよ寝ろ -->
   <Head>
     <title>SOMNIOVOX</title>
-    <Meta name="description" content="ランダムな単語を聞いて自然に眠りにつく。認知シャッフル睡眠法のWebアプリ。" />
-    <Meta name="apple-mobile-web-app-capable" content="yes" />
-    <Meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <Meta name="apple-mobile-web-app-title" content="CSSM" />
-    <Meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <Link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <Meta
+      name="description"
+      content="ランダムな単語を聞いて自然に眠りにつく。認知シャッフル睡眠法のWebアプリ。"
+    />
+    <Meta
+      name="apple-mobile-web-app-capable"
+      content="yes"
+    />
+    <Meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <Meta
+      name="apple-mobile-web-app-title"
+      content="CSSM"
+    />
+    <Meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <Link
+      rel="apple-touch-icon"
+      href="/apple-touch-icon.png"
+    />
   </Head>
-  <div class="min-h-screen flex items-center justify-center" style="overflow:hidden; position:fixed; width:100%; height:100%; background:var(--sv-ground-3)">
+  <div
+    class="min-h-screen flex items-center justify-center"
+    style="overflow:hidden; position:fixed; width:100%; height:100%; background:var(--sv-ground-3)"
+  >
     <div
       class="stage relative w-full"
       style="max-width:390px; max-height:844px; overflow:hidden; color:var(--sv-text); background:radial-gradient(120% 70% at 50% 45%, var(--sv-ground-1) 0%, var(--sv-ground-2) 55%, var(--sv-ground-3) 100%)"
@@ -199,7 +220,7 @@ onUnmounted(() => {
             alt=""
             aria-hidden="true"
             style="position:absolute; width:110.5%; left:-4.9%; top:116px; height:auto; max-width:none; pointer-events:none; user-select:none"
-          />
+          >
         </div>
       </Transition>
 
@@ -223,18 +244,27 @@ onUnmounted(() => {
         class="flex items-center justify-between"
         style="position:absolute; left:0; right:0; top:0; height:56px; padding:0 12px 0 20px; color:var(--sv-on-image)"
       >
-        <p class="flex items-baseline" style="gap:8px; text-shadow:0 1px 2px rgba(0,0,0,0.6)">
+        <p
+          class="flex items-baseline"
+          style="gap:8px; text-shadow:0 1px 2px rgba(0,0,0,0.6)"
+        >
           <span style="font-size:12px; font-weight:500; letter-spacing:0.22em">SOMNIOVOX</span>
           <span style="font-size:11px; letter-spacing:0.06em">v0.9</span>
         </p>
-        <div class="flex" style="gap:4px">
+        <div
+          class="flex"
+          style="gap:4px"
+        >
           <button
             type="button"
             aria-label="使い方"
             class="header-button"
             @click="showInfoSheet = 'about'"
           >
-            <UIcon name="i-lucide-circle-help" style="width:20px; height:20px" />
+            <UIcon
+              name="i-lucide-circle-help"
+              style="width:20px; height:20px"
+            />
           </button>
           <button
             type="button"
@@ -242,13 +272,19 @@ onUnmounted(() => {
             class="header-button"
             @click="showInfoSheet = 'credit'"
           >
-            <UIcon name="i-lucide-info" style="width:20px; height:20px" />
+            <UIcon
+              name="i-lucide-info"
+              style="width:20px; height:20px"
+            />
           </button>
         </div>
       </header>
 
       <!-- モード切替 -->
-      <div class="flex justify-center" style="position:absolute; left:0; right:0; top:64px">
+      <div
+        class="flex justify-center"
+        style="position:absolute; left:0; right:0; top:64px"
+      >
         <div
           role="group"
           aria-label="モード"
@@ -282,7 +318,10 @@ onUnmounted(() => {
           {{ phaseLabel }}
         </p>
 
-        <div class="relative w-full" style="height:57px">
+        <div
+          class="relative w-full"
+          style="height:57px"
+        >
           <Transition name="fade-word">
             <p
               v-if="phase !== 'phrase'"

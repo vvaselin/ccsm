@@ -38,7 +38,10 @@ const { dragY, isDragging, handlers: dragHandlers } = useSheetDrag(() => emit('c
         }"
       >
         <!-- ハンドル（当たり判定はシート全体） -->
-        <div class="flex items-center justify-center" style="height:32px">
+        <div
+          class="flex items-center justify-center"
+          style="height:32px"
+        >
           <div style="width:36px; height:4px; border-radius:999px; background:rgba(255,255,255,0.3)" />
         </div>
 
@@ -50,7 +53,10 @@ const { dragY, isDragging, handlers: dragHandlers } = useSheetDrag(() => emit('c
         </h2>
 
         <!-- 選択肢 -->
-        <div class="grid grid-cols-2" style="gap:8px; margin-bottom:16px">
+        <div
+          class="grid grid-cols-2"
+          style="gap:8px; margin-bottom:16px"
+        >
           <button
             v-for="opt in TIMER_OPTIONS"
             :key="opt.ms"

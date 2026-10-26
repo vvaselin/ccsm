@@ -58,7 +58,10 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
         }"
       >
         <!-- ハンドル（当たり判定はこの帯全体） -->
-        <div class="flex items-center justify-center" style="height:32px; flex-shrink:0; touch-action:none">
+        <div
+          class="flex items-center justify-center"
+          style="height:32px; flex-shrink:0; touch-action:none"
+        >
           <div style="width:36px; height:4px; border-radius:999px; background:rgba(255,255,255,0.3)" />
         </div>
 
@@ -69,9 +72,15 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
           style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:4px 24px calc(32px + env(safe-area-inset-bottom)); gap:28px"
         >
           <!-- 声 -->
-          <section class="flex flex-col" style="gap:12px">
+          <section
+            class="flex flex-col"
+            style="gap:12px"
+          >
             <h2 class="section-title">声</h2>
-            <div class="grid grid-cols-3" style="gap:8px">
+            <div
+              class="grid grid-cols-3"
+              style="gap:8px"
+            >
               <button
                 v-for="speaker in SPEAKERS"
                 :key="speaker.id"
@@ -95,9 +104,17 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
           </section>
 
           <!-- 声の距離 -->
-          <section class="flex flex-col" style="gap:12px">
+          <section
+            class="flex flex-col"
+            style="gap:12px"
+          >
             <h2 class="section-title">声の距離</h2>
-            <div role="group" aria-label="声の距離" class="grid grid-cols-3" style="gap:8px">
+            <div
+              role="group"
+              aria-label="声の距離"
+              class="grid grid-cols-3"
+              style="gap:8px"
+            >
               <button
                 v-for="d in VOICE_DISTANCES"
                 :key="d.id"
@@ -118,8 +135,18 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
                   stroke-width="1.5"
                   stroke-linecap="round"
                 >
-                  <path v-for="p in DISTANCE_ICONS[d.id].paths" :key="p" :d="p" />
-                  <circle :cx="DISTANCE_ICONS[d.id].dot" cy="9" r="2.4" fill="currentColor" stroke="none" />
+                  <path
+                    v-for="p in DISTANCE_ICONS[d.id].paths"
+                    :key="p"
+                    :d="p"
+                  />
+                  <circle
+                    :cx="DISTANCE_ICONS[d.id].dot"
+                    cy="9"
+                    r="2.4"
+                    fill="currentColor"
+                    stroke="none"
+                  />
                 </svg>
                 <span style="font-size:12px">{{ d.label }}</span>
               </button>
@@ -127,9 +154,17 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
           </section>
 
           <!-- 環境音 -->
-          <section class="flex flex-col" style="gap:12px">
+          <section
+            class="flex flex-col"
+            style="gap:12px"
+          >
             <h2 class="section-title">環境音</h2>
-            <div role="group" aria-label="環境音" class="grid grid-cols-3" style="gap:8px">
+            <div
+              role="group"
+              aria-label="環境音"
+              class="grid grid-cols-3"
+              style="gap:8px"
+            >
               <button
                 v-for="sound in AMBIENT_SOUNDS"
                 :key="sound.id"
@@ -140,7 +175,10 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
                 style="height:64px; border-radius:14px; gap:6px"
                 @click="$emit('toggleAmbient', sound.id)"
               >
-                <UIcon :name="sound.icon" style="width:22px; height:22px" />
+                <UIcon
+                  :name="sound.icon"
+                  style="width:22px; height:22px"
+                />
                 <span style="font-size:11px">{{ sound.label }}</span>
                 <!-- 下辺の線の長さで音量を示す -->
                 <span
@@ -153,9 +191,18 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
             </div>
 
             <!-- 鳴らす音だけ、細いスライダーで音量を合わせる -->
-            <div v-if="enabledSounds.length" class="mixer">
-              <template v-for="sound in enabledSounds" :key="sound.id">
-                <label :for="`vol-${sound.id}`" style="font-size:12px; color:var(--sv-text-sub); white-space:nowrap">{{ sound.label }}</label>
+            <div
+              v-if="enabledSounds.length"
+              class="mixer"
+            >
+              <template
+                v-for="sound in enabledSounds"
+                :key="sound.id"
+              >
+                <label
+                  :for="`vol-${sound.id}`"
+                  style="font-size:12px; color:var(--sv-text-sub); white-space:nowrap"
+                >{{ sound.label }}</label>
                 <input
                   :id="`vol-${sound.id}`"
                   type="range"
@@ -168,7 +215,7 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
                   :style="{ '--fill': volumePercent(sound.id), 'gridColumn': sound.variants ? 'auto' : 'span 2' }"
                   @touchstart.stop
                   @input="$emit('setAmbientVolume', sound.id, Number($event.target.value))"
-                />
+                >
                 <!-- 強さの切り替え（雨など variants を持つ音だけ） -->
                 <div
                   v-if="sound.variants"

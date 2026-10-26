@@ -1,3 +1,4 @@
+完了済み
 # SOMNIOVOX UI 再設計 — 実装指示
 
 対象は `frontend/`（Nuxt 4）。見た目の正解は `docs/ui-mock/` の 4 つの HTML（390×844 の静的モック）。寸法・色・余白はモックの inline style をそのまま正とする。迷ったらモックを開いて比べること。
