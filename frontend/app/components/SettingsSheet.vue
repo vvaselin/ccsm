@@ -24,8 +24,11 @@ const DISTANCE_ICONS = {
   far:  { paths: ['M2 15V7a5 5 0 0 1 10 0c0 3-3 4-3 7', 'M17 5.5a5 5 0 0 1 0 7M21 3a8 8 0 0 1 0 12'], dot: 30 },
 }
 
-// 音量（0〜MAX_VOLUME）を % に
-const volumePercent = id => `${(props.ambientStates[id].volume / MAX_VOLUME) * 100}%`
+// 音量の上限（音ごとに maxVolume があればそちら）
+const maxOf = sound => sound.maxVolume ?? MAX_VOLUME
+
+// 音量（0〜上限）を % に
+const volumePercent = sound => `${(props.ambientStates[sound.id].volume / maxOf(sound)) * 100}%`
 
 // ON の音だけスライダーを並べる
 const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientStates[s.id].enabled))
@@ -155,7 +158,7 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
               v-if="ambientStates[sound.id].enabled"
               aria-hidden="true"
               style="position:absolute; left:0; bottom:0; height:2px; background:var(--sv-accent)"
-              :style="{ width: volumePercent(sound.id) }"
+              :style="{ width: volumePercent(sound) }"
             />
           </button>
         </div>
@@ -177,12 +180,12 @@ const enabledSounds = computed(() => AMBIENT_SOUNDS.filter(s => props.ambientSta
               :id="`vol-${sound.id}`"
               type="range"
               min="0"
-              :max="MAX_VOLUME"
+              :max="maxOf(sound)"
               step="0.01"
               :value="ambientStates[sound.id].volume"
               :aria-label="`${sound.label}の音量`"
               class="volume"
-              :style="{ '--fill': volumePercent(sound.id), 'gridColumn': sound.variants ? 'auto' : 'span 2' }"
+              :style="{ '--fill': volumePercent(sound), 'gridColumn': sound.variants ? 'auto' : 'span 2' }"
               @touchstart.stop
               @input="$emit('setAmbientVolume', sound.id, Number($event.target.value))"
             >

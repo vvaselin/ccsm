@@ -19,8 +19,11 @@ let silentBuf = null
 
 export function getCtx() {
   if (!ctx) {
-    // latencyHint: 'playback' は低遅延より省電力を優先する指定。睡眠用途なので十分
-    ctx = new AudioContext({ latencyHint: 'playback' })
+    // 出力バッファの長さ。'playback' だと Chrome では 20ms しか取られず、画面オフで
+    // CPU が落ちたときに音声スレッドが間に合わずプツプツ途切れていた。秒で渡すと
+    // そのまま使われる（Chrome は約 170ms が上限）。長くするほど途切れにくいが、
+    // 解析した波形の更新がこの間隔でまとめて来るので、波形表示が粗くならない程度にしてある
+    ctx = new AudioContext({ latencyHint: 0.1 })
     master = ctx.createGain()
     master.gain.value = 1
     master.connect(ctx.destination)

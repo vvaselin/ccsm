@@ -11,6 +11,7 @@ import { loadBuffer, startBufferLoop }       from '~/lib/ambient/fileLoop'
 import { startPink, startBrown, startSpace } from '~/lib/ambient/synth'
 
 const SOUND_BY_ID = Object.fromEntries(AMBIENT_SOUNDS.map(s => [s.id, s]))
+const maxOf       = id => SOUND_BY_ID[id].maxVolume ?? MAX_VOLUME
 
 export function useAmbientSound() {
   // サウンドごとの状態
@@ -51,7 +52,7 @@ export function useAmbientSound() {
     const sound = SOUND_BY_ID[id]
     const ctx   = getCtx()
     const gain  = ctx.createGain()
-    gain.gain.value = Math.min(states[id].volume, MAX_VOLUME)
+    gain.gain.value = Math.min(states[id].volume, maxOf(id))
     gain.connect(getMaster())
 
     const entry = { gainNode: gain, stopFn: null }
@@ -112,7 +113,7 @@ export function useAmbientSound() {
   }
 
   function setVolume(id, v) {
-    const clamped = Math.min(v, MAX_VOLUME)
+    const clamped = Math.min(v, maxOf(id))
     states[id].volume = clamped
     persist()
     if (nodes[id]) {
